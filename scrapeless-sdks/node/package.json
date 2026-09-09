@@ -1,0 +1,32 @@
+{
+  "name": "scrapeless-detector",
+  "version": "1.0.1",
+  "description": "Ask a page whether it is protected, from Node \u2014 drives Chrome with the Scrapeless Anti-Bot Detector extension loaded.",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "lib/"
+  ],
+  "scripts": {
+    "test": "node --test"
+  },
+  "peerDependencies": {
+    "playwright": ">=1.30.0"
+  },
+  "peerDependenciesMeta": {
+    "playwright": {
+      "optional": true
+    }
+  },
+  "license": "NPOSL-3.0",
+  "keywords": [
+    "antibot",
+    "captcha",
+    "fingerprint",
+    "scraping",
+    "playwright",
+    "detection"
+  ]
+}

@@ -1,0 +1,161 @@
+# IDE and Editor files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+.project
+.settings/
+*.swp
+*.swo
+*~
+
+# Claude AI files
+.claude/
+
+# System files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs and debug files
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Dependencies (in case you add any later)
+node_modules/
+bower_components/
+
+# Build outputs
+dist/
+build/
+out/
+*.crx
+*.pem
+*.zip
+
+# Local environment files
+.env
+.env.local
+.env.*.local
+
+# Test files and examples
+test-*.html
+test-*.js
+old example of recaptcha capture/
+
+# Local configuration files
+.claude/settings.local.json
+*.local.json
+config.local.js
+
+# Temporary files
+*.tmp
+*.temp
+.tmp/
+temp/
+
+# Chrome extension specific
+# Keep manifest.json and other required files
+# Exclude packed extensions
+*.crx
+*.pem
+
+# Documentation
+docs/
+*.pdf
+
+# Internal planning docs (not shipped, not needed in the repo)
+plans/
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# Cache files
+.cache/
+*.cache
+
+# Personal notes or todo files
+TODO.txt
+NOTES.txt
+notes.txt
+todo.txt
+Claude.md
+CLAUDE.md
+AGENTS.md
+MEMORY.md
+_delete_test_root.txt
+/.lh
+
+# Screenshots and test images (keep official icons)
+screenshots/
+test-images/
+*.screenshot.png
+test-*.png
+
+# Archive and compressed files
+*.rar
+*.7z
+*.tar
+*.gz
+
+# Coverage reports
+coverage/
+*.coverage
+.nyc_output/
+
+# Package manager files (if added in future)
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Secrets and API keys
+secrets/
+*.key
+*.secret
+api-keys.json
+credentials.json
+
+# Draft and work-in-progress files
+draft/
+drafts/
+WIP/
+*.draft.*
+
+# Debug dumps
+*.dmp
+*.dump
+.playwright-mcp/
+
+# Assets (icons, images)
+assets/
+!assets/
+assets/*
+!assets/store-screenshots/
+!assets/store-screenshots/**
+
+# Development-only tree — intentionally not published.
+# This repository ships the runnable extension and the page SDK, nothing else.
+# The test suite (182 tests), the validators and the CI workflows were removed
+# in the distribution-only restructure; they remain recoverable from git history.
+spec/
+tooling/
+.github/
+/package.json
+
+# SDK build output — every language's test run drops these
+scrapeless-sdks/rust/target/
+scrapeless-sdks/rust/Cargo.lock
+scrapeless-sdks/java/build/
+scrapeless-sdks/csharp/**/bin/
+scrapeless-sdks/csharp/**/obj/
+scrapeless-sdks/node/node_modules/

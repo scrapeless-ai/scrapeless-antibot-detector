@@ -1,0 +1,553 @@
+/* ============================================
+   COMMON.CSS - Shared Design System
+   Design tokens, base components, utilities
+   Must load FIRST before all other stylesheets
+   ============================================ */
+
+/* ============================================
+   REDUCED MOTION
+   Respect user OS-level "reduce motion" preference.
+   Disable animations and transitions for users with
+   vestibular sensitivity (motion sickness, dizziness).
+   ============================================ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ============================================
+   DESIGN TOKENS
+   ============================================ */
+:root {
+  /* Background Colors */
+  --bg-primary: #101817;
+  --bg-secondary: #1c2826;
+  --bg-tertiary: #293a36;
+
+  /* Text Colors */
+  --text-primary: #ffffff;
+  --text-secondary: #c3d0cc;
+  --text-muted: #81918b;
+
+  /* Accent & Status Colors */
+  --accent: #12a594;
+  --accent-rgb: 18, 165, 148;   /* #12a594, for rgba() */
+  --accent-hover: #0b8578;
+  --accent-light: #5dd3c4;
+  --accent-dark: #006e65;
+  --success: #43c59e;
+  --success-light: #79e1bf;
+  --success-dark: #218f73;
+  --warning: #e6a647;
+  --warning-light: #f5c979;
+  --warning-dark: #b87524;
+  --danger: #f06a54;
+  --danger-light: #ffad9d;
+  --danger-dark: #c74a38;
+  --danger-lightest: #ffd1c8;
+  --purple: #9b8af7;
+  --purple-light: #c0b5ff;
+  --green: #43c59e;
+  --green-dark: #218f73;
+
+  /* Border Colors */
+  --border: #38504b;
+  --border-light: #4d6861;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.08);
+
+  /* Badge Colors - Detection Methods */
+  --badge-dom: #5dd3c4;
+  --badge-content: #43c59e;
+  --badge-header: #e4a0d6;
+  --badge-cookie: #f06a54;
+  --badge-url: #70c9d5;
+  --badge-window: #a8b7b2;
+  --badge-js-hooks: #b6a9ff;
+  --badge-payload: #b2a089;
+
+  /* Badge Colors - Categories */
+  --badge-captcha: #70c9d5;
+  --badge-fingerprint: #9b8af7;
+}
+
+/* ============================================
+   GLOBAL RESET
+   ============================================ */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* ============================================
+   GLOBAL SCROLLBAR
+   ============================================ */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--accent);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-light);
+}
+
+/* ============================================
+   CLOSE BUTTON (shared across all modals)
+   --------------------------------------------
+   CANONICAL MODAL-HEADER PATTERN — keep every modal on this shape:
+     .modal-header  -> display:flex; gap; (NO position:relative)
+       .header-content / title -> flex:1; min-width:0; (text wraps here)
+       .close-btn               -> flex-shrink:0; (always reserves its slot)
+   NEVER position:absolute the close button — that lets longer translated
+   or RTL header text slide underneath and clip the X. Enforced by
+   tooling/validate-package-graph.js.
+   ============================================ */
+.close-btn,
+.detection-modal-close,
+.history-modal-close {
+  background: rgba(239, 68, 68, 0.15);
+  border: none;
+  color: var(--danger);
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: flex-start;
+  line-height: 1;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+}
+
+.close-btn:hover,
+.detection-modal-close:hover,
+.history-modal-close:hover {
+  background: var(--danger);
+  color: white;
+  transform: scale(1.05);
+}
+
+/* Unblock control on disabled card — only when domain is blacklisted (.visible) */
+.state-card-blacklist-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: none;
+  color: var(--text-secondary, #9ca3af);
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.state-card-blacklist-btn.visible {
+  display: inline-flex;
+}
+
+.state-card-blacklist-btn:hover {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--danger, #ef4444);
+}
+
+/* ============================================
+   BADGE SYSTEM - Category Badges
+   ============================================ */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+/* Detection Method Badges */
+.badge-dom {
+  background: rgba(33, 150, 243, 0.2);
+  color: var(--badge-dom);
+  border: 1px solid rgba(33, 150, 243, 0.35);
+}
+
+.badge-content {
+  background: rgba(16, 185, 129, 0.2);
+  color: var(--badge-content);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+.badge-headers,
+.badge-header {
+  background: rgba(236, 72, 153, 0.2);
+  color: var(--badge-header);
+  border: 1px solid rgba(236, 72, 153, 0.35);
+}
+
+.badge-cookies,
+.badge-cookie {
+  background: rgba(239, 68, 68, 0.2);
+  color: var(--badge-cookie);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+}
+
+.badge-urls,
+.badge-url {
+  background: rgba(6, 182, 212, 0.2);
+  color: var(--badge-url);
+  border: 1px solid rgba(6, 182, 212, 0.35);
+}
+
+.badge-window {
+  background: rgba(107, 114, 128, 0.2);
+  color: var(--badge-window);
+  border: 1px solid rgba(107, 114, 128, 0.35);
+}
+
+.badge-js_hooks,
+.badge-js-hooks {
+  background: rgba(139, 92, 246, 0.2);
+  color: var(--badge-js-hooks);
+  border: 1px solid rgba(139, 92, 246, 0.35);
+}
+
+.badge-payload {
+  background: rgba(107, 114, 128, 0.2);
+  color: var(--badge-payload);
+  border: 1px solid rgba(107, 114, 128, 0.35);
+}
+
+/* ============================================
+   CONFIDENCE BADGES
+   ============================================ */
+.confidence-display {
+  padding: 2px 6px;
+  border-radius: 8px;
+  font-size: 9px;
+  font-weight: 700;
+  min-width: 28px;
+  text-align: center;
+}
+
+.confidence-high {
+  background: var(--success);
+  color: white;
+}
+
+.confidence-medium {
+  background: var(--warning);
+  color: white;
+}
+
+.confidence-low {
+  background: var(--danger);
+  color: white;
+}
+
+/* ============================================
+   PAGINATION (shared across detection, history, rules)
+   ============================================ */
+/* Wrap rather than clip. At 400px the controls need ~161px, leaving ~211px
+   for the summary, but "Visualizzazione 1-12 di 45" wants 255px and three
+   other locales overflow too. Given its own line the summary has the full
+   width and all twelve fit. */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  row-gap: 4px;
+  gap: 8px;
+  padding: 6px 10px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-top: 6px;
+  margin-bottom: 0;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+/* Block, not flex. PaginationManager builds this line as number <span>s with
+   the template's own text between them, so a flex gap put 2px between every
+   child and rendered "1-12" as "1 - 12" — spacing the template never asked
+   for, which also widened the line in exactly the locales that overflow.
+   text-overflow was inert here too: ellipsis does nothing on a flex
+   container, so an overflowing line clipped mid-glyph and ate the total. As
+   a block the spans flow inline, the template's spacing is honoured, and the
+   ellipsis works if it is ever needed. */
+.pagination-info {
+  display: block;
+  font-size: 12px;
+  color: var(--text-muted);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pagination-info .static-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+}
+
+.pagination-info .pagination-count {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* tabular-nums already keeps digits from jittering as the count changes, so
+   the 32px floor bought nothing and cost a lot: a single-digit "1" was
+   padded to 32px and centred, which is what rendered "1-12" as "1  -  12"
+   and burned ~60px across the three spans — most of the overflow that was
+   clipping the total in fr, it, ru and hi. */
+.pagination-count {
+  font-variant-numeric: tabular-nums;
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.page-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.page-input {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.page-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: var(--bg-primary);
+}
+
+.total-pages {
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.pagination-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+
+.pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ============================================
+   BUTTONS - Primary & Secondary
+   ============================================ */
+.primary-btn {
+  padding: 10px 16px;
+  background: var(--accent);
+  border: none;
+  border-radius: 6px;
+  color: white;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+
+.primary-btn:hover {
+  background: var(--accent-hover);
+}
+
+.secondary-btn {
+  padding: 10px 16px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.secondary-btn:hover {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+/* ============================================
+   FORM ELEMENTS
+   ============================================ */
+.input-field,
+.select-field,
+.textarea-field {
+  padding: 8px 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+.input-field:focus,
+.select-field:focus,
+.textarea-field:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.2);
+}
+
+/* ============================================
+   SWITCH COMPONENT
+   ============================================ */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--bg-tertiary);
+  transition: 0.2s;
+  border-radius: 12px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 20px;
+  width: 20px;
+  left: 2px;
+  bottom: 2px;
+  background: var(--text-secondary);
+  transition: 0.2s;
+  border-radius: 50%;
+}
+
+input:checked + .slider {
+  background: var(--accent);
+}
+
+input:checked + .slider:before {
+  transform: translateX(20px);
+  background: white;
+}
+
+/* ============================================
+   FINGERPRINT ICON (shared color layer)
+   ============================================ */
+.fingerprint-icon {
+  color: var(--accent-light);
+}
+
+.fingerprint-icon-shell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.fingerprint-icon-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: transparent !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+}
+
+.fingerprint-icon-image--builtin {
+  /* Generated fingerprint SVGs already carry the theme accent. Keeping their
+     pixels untouched also preserves external image icons selected by users. */
+  filter: none;
+}
+
+.fingerprint-icon-image--custom {
+  filter: brightness(0) saturate(100%) invert(65%) sepia(39%) saturate(1506%) hue-rotate(186deg) brightness(100%) contrast(101%);
+}
+
+.fingerprint-icon-image--default {
+  filter: none;
+}
+
+/* ============================================
+   COPY FEEDBACK
+   ============================================ */
+.copy-feedback-active {
+  background: rgba(16, 185, 129, 0.25) !important;
+  color: var(--success-light) !important;
+  border-color: rgba(16, 185, 129, 0.6) !important;
+  font-weight: 600 !important;
+}

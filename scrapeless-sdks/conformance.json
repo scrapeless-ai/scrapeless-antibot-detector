@@ -1,0 +1,85 @@
+{
+  "_comment": "Shared truth for every SDK. Each language's tests read THIS file, so a fold that drifts in one SDK fails that SDK's own suite. Do not fork these vectors into a language.",
+  "categoryFold": [
+    { "raw": "Anti-Bot",       "expect": "antibot" },
+    { "raw": "ANTIBOT",        "expect": "antibot" },
+    { "raw": "anti bot",       "expect": "antibot" },
+    { "raw": "  Anti-Bot  ",   "expect": "antibot" },
+    { "raw": "WAF",            "expect": "antibot" },
+    { "raw": "CAPTCHA",        "expect": "captcha" },
+    { "raw": "Captcha",        "expect": "captcha" },
+    { "raw": "Fingerprint",    "expect": "fingerprint" },
+    { "raw": "fingerprinting", "expect": "fingerprint" },
+    { "raw": "something else", "expect": "other" },
+    { "raw": "",               "expect": "other" },
+    { "raw": "123",            "expect": "other" }
+  ],
+  "results": [
+    {
+      "name": "counts each category independently",
+      "detail": {
+        "url": "https://example.test/checkout",
+        "detectionCount": 3,
+        "detections": [
+          { "name": "Cloudflare Bot Management", "category": "Anti-Bot", "confidence": 98 },
+          { "name": "hCaptcha", "category": "CAPTCHA" },
+          { "name": "Canvas", "category": "Fingerprint" }
+        ]
+      },
+      "expect": {
+        "available": true, "total": 3, "reportedTotal": 3,
+        "categories": { "antibot": 1, "captcha": 1, "fingerprint": 1, "other": 0 },
+        "isAntibot": true, "isCaptcha": true, "isFingerprinted": true, "isProtected": true,
+        "firstName": "Cloudflare Bot Management", "firstCategoryKey": "antibot"
+      }
+    },
+    {
+      "name": "a clean page is available but empty",
+      "detail": { "url": "https://clean.test/", "detectionCount": 0, "detections": [] },
+      "expect": {
+        "available": true, "total": 0, "reportedTotal": 0,
+        "categories": { "antibot": 0, "captcha": 0, "fingerprint": 0, "other": 0 },
+        "isAntibot": false, "isCaptcha": false, "isFingerprinted": false, "isProtected": false
+      }
+    },
+    {
+      "name": "reportedTotal keeps the extension claim separate from what arrived",
+      "detail": { "detectionCount": 9, "detections": [ { "name": "Akamai", "category": "Anti-Bot" } ] },
+      "expect": {
+        "available": true, "total": 1, "reportedTotal": 9,
+        "categories": { "antibot": 1, "captcha": 0, "fingerprint": 0, "other": 0 },
+        "isAntibot": true, "isProtected": true,
+        "firstName": "Akamai", "firstCategoryKey": "antibot"
+      }
+    },
+    {
+      "name": "malformed detections are normalized rather than thrown on",
+      "detail": { "detections": [ null, {}, { "name": "X", "confidence": "not a number" } ] },
+      "expect": {
+        "available": true, "total": 3, "reportedTotal": 3,
+        "categories": { "antibot": 0, "captcha": 0, "fingerprint": 0, "other": 3 },
+        "isAntibot": false, "isProtected": true,
+        "firstName": "Unknown", "firstCategoryKey": "other",
+        "lastConfidenceIsNull": true
+      }
+    },
+    {
+      "name": "the nested detector shape the extension also emits",
+      "detail": { "detections": [ { "detector": { "name": "Akamai", "category": "Anti-Bot" } } ] },
+      "expect": {
+        "available": true, "total": 1, "reportedTotal": 1,
+        "categories": { "antibot": 1, "captcha": 0, "fingerprint": 0, "other": 0 },
+        "isAntibot": true, "isProtected": true,
+        "firstName": "Akamai", "firstCategoryKey": "antibot"
+      }
+    }
+  ],
+  "unavailable": {
+    "_comment": "No extension, or Page signals off. A false here must never be read as 'clean'.",
+    "expect": {
+      "available": false, "reason": "unavailable", "total": 0, "reportedTotal": 0,
+      "categories": { "antibot": 0, "captcha": 0, "fingerprint": 0, "other": 0 },
+      "isAntibot": false, "isCaptcha": false, "isFingerprinted": false, "isProtected": false
+    }
+  }
+}

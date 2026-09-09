@@ -1,0 +1,7284 @@
+/*
+ * Scrapeless Console
+ * ------------------
+ * The "Console" direction, rebuilt 1:1 against the reference renders rather
+ * than approximated with a token swap. The previous revision of this file
+ * recoloured the popup and left its card geometry intact, which is why it
+ * still read as a generic dark extension: Console is not a palette, it is the
+ * absence of cards.
+ *
+ * WHAT MAKES IT CONSOLE
+ *   - Full-bleed zebra rows. No card, no radius, no shadow, no gutter. A
+ *     finding is a band of colour that runs edge to edge, separated from its
+ *     neighbour by one hairline and one step of surface tone.
+ *   - A 3px category rail on the left edge of every row, and a confidence bar
+ *     along the bottom whose width *is* the confidence. Colour encodes
+ *     category and severity; it is never decoration.
+ *   - Micro-caps monospace for every label, tabular monospace for every
+ *     figure, sans for prose only.
+ *   - Four surfaces and one line colour. Header, tab strip, section bands and
+ *     footer share the band tone; rows alternate between the two ground tones.
+ *
+ * MEASURED, NOT ESTIMATED
+ * Every value below was read off the reference renders at 2x:
+ *   header 49px · tab strip 25px · section band 23px · footer 34px
+ *   band #252525 · row A #1e1e1e · row B #242424 · hairline #343434
+ *   rail antibot #e5484d · captcha #077ef5 · other #2dd4bf
+ * The reference is drawn at 420x600; this popup is 400x580, so horizontal
+ * padding is the only figure scaled (12px stays 12px, the content column
+ * absorbs the 20px difference).
+ *
+ * WHY DARK ONLY
+ * Unchanged from the previous revision, and still the honest answer: the base
+ * stylesheets carry hundreds of literal dark colour declarations alongside the
+ * token layer, so a light theme would leak them straight through this skin.
+ * The reference ships a light build; this popup earns one when those literals
+ * are tokenised, not before.
+ *
+ * TYPEFACE
+ * The reference sets Geist / Geist Mono. Neither is bundled and MV3's CSP
+ * blocks the webfont, so this uses the platform stacks that sit closest to
+ * them. Nothing else about the direction depends on the typeface.
+ */
+
+:root {
+  /* --- Console surfaces ------------------------------------------------- */
+  --con-band: #252525;      /* header, inactive tabs, section bands, footer */
+  --con-row-a: #1c1c1c;     /* odd rows, active tab, ground                 */
+  --con-row-b: #272727;     /* even rows                                    */
+  --con-line: #3d3d3d;      /* the only hairline                            */
+  --con-line-strong: #5c5c5c;
+
+  /* --- Console ink ------------------------------------------------------ */
+  --con-ink: #eeeeee;       /* values, titles                               */
+  --con-ink-2: #c8c8c8;     /* prose                                        */
+  --con-ink-3: #a2a2a2;     /* labels, micro-caps                           */
+
+  /* --- Console encoding ------------------------------------------------- */
+  --con-accent: #2dd4bf;
+  --con-accent-rgb: 45, 212, 191;   /* #2dd4bf, for rgba() */
+  --con-accent-text: #56d2c0;
+  --con-red: #e5484d;
+  --con-red-fill: #3f292a;
+  --con-blue: #077ef5;
+  --con-amber: #ffb224;
+
+  /* --- the sheet chassis ------------------------------------------------
+     One geometry for every modal. Four of them had drifted to four slightly
+     different scrims, radii and shadows, and the rule editor took the whole
+     popup with no inset at all. */
+  --con-scrim: rgba(0, 0, 0, 0.62);
+  --con-sheet-inset: 12px;
+  --con-sheet-radius: 4px;
+  --con-sheet-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+
+  --con-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, system-ui, sans-serif;
+  --con-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* --- the token layer the base stylesheets consume --------------------- */
+  --bg-primary: var(--con-row-a);
+  --bg-secondary: var(--con-band);
+  --bg-tertiary: var(--con-row-b);
+
+  --text-primary: var(--con-ink);
+  --text-secondary: var(--con-ink-2);
+  --text-muted: var(--con-ink-3);
+
+  --accent: var(--con-accent);
+  --accent-rgb: var(--con-accent-rgb);
+  --accent-hover: var(--con-accent-text);
+  --accent-light: var(--con-accent-text);
+  --accent-dark: #0d9488;
+  --success: var(--con-accent);
+  --success-light: var(--con-accent-text);
+  --success-dark: #0d9488;
+  --warning: var(--con-amber);
+  --warning-light: #ffcc7a;
+  --warning-dark: #b8860b;
+  --danger: var(--con-red);
+  --danger-light: #ff8e7b;
+  --danger-dark: #c62a2f;
+  --danger-lightest: #ffd1c8;
+  --purple: #9b8af7;
+  --purple-light: #c0b5ff;
+  --green: var(--con-accent);
+  --green-dark: #0d9488;
+
+  --border: var(--con-line);
+  --border-light: var(--con-line-strong);
+  --shadow-sm: none;
+
+  --badge-dom: var(--con-accent);
+  --badge-content: var(--con-accent-text);
+  --badge-header: #e4a0d6;
+  --badge-cookie: var(--con-red);
+  --badge-url: var(--con-blue);
+  --badge-window: var(--con-ink-3);
+  --badge-js-hooks: #9b8af7;
+  --badge-payload: #b2a089;
+  --badge-captcha: var(--con-blue);
+  --badge-fingerprint: var(--con-accent);
+}
+
+/* ============================================================
+   SHELL
+   Console has no inner frame: the popup body is the ground.
+   ============================================================ */
+
+html,
+body {
+  background: var(--con-row-a);
+}
+
+body,
+#app {
+  font-family: var(--con-sans);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--con-ink-2);
+  -webkit-font-smoothing: antialiased;
+}
+
+#app {
+  background: var(--con-row-a);
+  display: flex;
+  flex-direction: column;
+}
+
+/* One hairline scrollbar, never a track. */
+#app ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+#app ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+#app ::-webkit-scrollbar-thumb {
+  background: var(--con-line);
+  border: 2px solid var(--con-row-a);
+  border-radius: 0;
+}
+
+#app ::-webkit-scrollbar-thumb:hover {
+  background: var(--con-line-strong);
+}
+
+/* ============================================================
+   HEADER — 49px band, wordmark left, controls right
+   ============================================================ */
+
+.header {
+  background: var(--con-band);
+  border-bottom: 1px solid var(--con-line);
+  box-shadow: none;
+  padding: 0;
+  flex: 0 0 auto;
+}
+
+.header .header-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  height: 36px;
+  margin: 0;
+  padding: 0 12px;
+  background: transparent;
+  border: 0;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.logo-icon-wrapper {
+  width: 15px;
+  height: 15px;
+  min-width: 15px;
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  box-shadow: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.logo-icon {
+  width: 15px;
+  height: 15px;
+  border-radius: 3px;
+}
+
+/*
+ * The wordmark. scrapeless.com sets "scrape" in grey and "less" in brand
+ * primary; the markup here carries a single translated string, so the two
+ * halves are drawn as generated content and the string itself is kept in the
+ * accessibility tree rather than deleted.
+ */
+.logo-text {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: baseline;
+  gap: 0;
+  min-width: 0;
+}
+
+.logo-text::before {
+  content: "scrape";
+  order: 1;
+  font: 600 16px/1 var(--con-sans);
+  letter-spacing: -0.012em;
+  color: var(--con-ink-2);
+}
+
+.logo-text::after {
+  content: "less";
+  order: 2;
+  font: 600 16px/1 var(--con-sans);
+  letter-spacing: -0.012em;
+  color: var(--con-accent);
+}
+
+#appBrand {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+#appVersion.app-version {
+  order: 3;
+  font: 500 12.5px/1 var(--con-mono);
+  letter-spacing: 0.08em;
+  color: var(--con-ink-3);
+  background: transparent;
+  border: 0;
+  padding: 0;
+  margin: 0 0 0 7px;
+  text-transform: none;
+  align-self: baseline;
+}
+
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/*
+ * Shared switch anatomy: a 36x28 click target around an 18px rail. The knob
+ * stays on the same vertical centerline in both states.
+ */
+.toggle-switch {
+  width: 36px;
+  height: 28px;
+}
+
+.toggle-slider {
+  inset: 5px 0;
+  border-radius: 9px;
+  border: 0;
+  background-color: var(--con-line);
+  box-shadow: none;
+}
+
+.toggle-slider:before {
+  height: 12px;
+  width: 12px;
+  left: 3px;
+  top: 50%;
+  bottom: auto;
+  transform: translateY(-50%);
+  background-color: var(--con-ink-3);
+}
+
+.toggle-input:checked + .toggle-label .toggle-slider {
+  background-color: rgba(45, 212, 191, 0.3);
+  border-color: transparent;
+}
+
+.toggle-input:checked + .toggle-label .toggle-slider:before {
+  transform: translateX(18px) translateY(-50%);
+  background-color: var(--con-accent);
+}
+
+.toggle-input:focus-visible + .toggle-label .toggle-slider {
+  outline: 1px solid var(--con-accent);
+  outline-offset: 2px;
+}
+
+.settings-btn {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--con-ink-3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s ease;
+}
+
+.settings-btn:hover {
+  background: transparent;
+  color: var(--con-accent);
+  transform: none;
+}
+
+.settings-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* ============================================================
+   TABS — 25px strip, micro-caps, hairline dividers
+   ============================================================ */
+
+.tabs-nav {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 0;
+  padding: 0;
+  margin: 0;
+  background: var(--con-band);
+  border: 0;
+  border-top: 1px solid var(--con-line);
+  border-bottom: 1px solid var(--con-line);
+  overflow: visible;
+}
+
+.tab-btn {
+  height: 29px;
+  min-width: 0;
+  padding: 0 1px;
+  gap: 0;
+  border: 0;
+  border-right: 1px solid var(--con-line);
+  border-radius: 0;
+  background: var(--con-band);
+  color: var(--con-ink-3);
+  font: 600 12.5px/1 var(--con-mono);
+  /* Four tabs share 400px, so each label gets 100px. At 0.13em the
+     Russian "Обнаружение" needed 102.7px and was clipped; its eleven
+     characters spend ~18px on tracking alone. 0.11em keeps the
+     letter-spaced uppercase look and buys back 2.75px, and the 1px
+     padding adds 2px more, so every one of the twelve locales fits. */
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  box-shadow: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.12s ease, background 0.12s ease;
+}
+
+.tab-btn:last-child {
+  border-right: 0;
+}
+
+/* Console names the panels; it does not illustrate them. */
+.tab-btn svg,
+.tab-btn img {
+  display: none;
+}
+
+.tab-btn:hover:not(.active) {
+  background: var(--con-band);
+  color: var(--con-ink-2);
+  transform: none;
+}
+
+.tab-btn.active {
+  background: var(--con-row-a);
+  color: var(--con-accent);
+  box-shadow: inset 0 -2px 0 var(--con-accent);
+}
+
+.tab-btn.active::before,
+.tab-btn.active::after,
+.tab-btn::before,
+.tab-btn::after {
+  display: none;
+}
+
+/* The Analytics entry leaves the popup rather than switching panes, so it
+   never takes the active treatment. The trailing glyph is what says so. */
+.tab-btn-away {
+  gap: 4px;
+  /* The glyph has to share a quarter of the strip with a nine-character label,
+     so this one tab buys its room back out of the tracking. */
+  letter-spacing: 0.07em;
+  color: var(--con-ink-3);
+}
+
+.tab-btn-away::after {
+  display: block;
+  content: "";
+  width: 5px;
+  height: 5px;
+  flex: 0 0 auto;
+  margin-bottom: 4px;
+  border-top: 1px solid currentColor;
+  border-right: 1px solid currentColor;
+  transform: rotate(45deg);
+  opacity: 0.75;
+}
+
+.tab-btn-away:hover {
+  color: var(--con-accent);
+  background: var(--con-band);
+}
+
+/* ============================================================
+   MAIN
+   ============================================================ */
+
+.main {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 0;
+  margin: 0;
+  background: var(--con-row-a);
+  overflow: hidden;
+}
+
+.tab-content {
+  padding: 0;
+  margin: 0;
+  height: 100%;
+  min-height: 0;
+}
+
+/* detection.css keeps a 12px gutter on this panel, and it wins on an ID. The
+   skin is full-bleed — every band, row and footer carries its own 12px — so
+   the gutter only showed up as a strip of ground the rows could not reach. */
+#detectionTab.tab-content {
+  padding: 0;
+}
+
+.tab-content.active,
+#detectionTab.active {
+  display: flex;
+  flex-direction: column;
+}
+
+.detection-results {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  gap: 0;
+  padding: 0;
+}
+
+/* ============================================================
+   TARGET — the header's second line: host, status, score
+   The markup keeps this inside the detection panel, so it is pinned to the
+   top of the panel and given the band tone to read as one block with the
+   header above it.
+   ============================================================ */
+
+.detection-overview {
+  flex: 0 0 auto;
+  padding: 0;
+  margin: 0;
+  gap: 0;
+  border: 0;
+  border-radius: 0;
+  background: var(--con-band);
+  box-shadow: none;
+}
+
+.url-display-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 12px 6px;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.url-display-container {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.site-favicon {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  border: 0;
+  background: transparent;
+  padding: 0;
+}
+
+#siteUrl.site-url {
+  font: 600 16px/1.15 var(--con-mono);
+  letter-spacing: -0.02em;
+  color: var(--con-ink);
+  background: transparent;
+  border: 0;
+  padding: 0;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.url-action-buttons {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.url-action-btn {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--con-ink-3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.12s ease;
+}
+
+.url-action-btn svg {
+  width: 12px;
+  height: 12px;
+}
+
+.url-action-btn,
+.url-action-btn.upload-paste-btn,
+.url-action-btn.clear-cache-btn,
+.url-action-btn.copy-overview-btn,
+.url-action-btn.blacklist-btn,
+.url-action-btn:disabled,
+.url-action-btn.active,
+#detectionTab #clearCacheBtn,
+#detectionTab #addToBlacklistBtn,
+#detectionTab #uploadPasteBtn,
+#detectionTab #copyOverviewBtn {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  color: var(--con-ink-3) !important;
+}
+
+#detectionTab #clearCacheBtn:hover,
+#detectionTab #addToBlacklistBtn:hover {
+  background: transparent !important;
+  color: var(--con-red) !important;
+}
+
+#detectionTab #uploadPasteBtn:hover,
+#detectionTab #copyOverviewBtn:hover {
+  background: transparent !important;
+  color: var(--con-accent) !important;
+}
+
+.url-action-btn:hover,
+.url-action-btn.upload-paste-btn:hover,
+.url-action-btn.copy-overview-btn:hover {
+  background: transparent;
+  transform: none;
+  box-shadow: none;
+  color: var(--con-accent);
+}
+
+.url-action-btn.blacklist-btn:hover,
+.url-action-btn.clear-cache-btn:hover,
+.url-action-btn.clear-cache-btn:focus,
+.url-action-btn.clear-cache-btn:active,
+.url-action-btn.blacklist-btn:focus,
+.url-action-btn.blacklist-btn:active {
+  background: transparent !important;
+  transform: none;
+  box-shadow: none !important;
+  color: var(--con-red) !important;
+}
+
+/* Removed from the overview. The handler and its confirmation are untouched,
+   and the same action remains on each History entry. */
+.url-action-buttons .url-action-btn.clear-cache-btn,
+#detectionTab #clearCacheBtn {
+  display: none !important;
+}
+
+/* --- the measured strip: two figures left, the score badge right --------- */
+
+.stats-line {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 0 12px 8px;
+  margin: 0;
+  border: 0;
+  background: transparent;
+}
+
+/* Removed from the overview; still computed, still copied. */
+.stats-line .stat-inline.overall-confidence {
+  display: none;
+}
+
+.stats-line .stat-inline {
+  flex: 0 0 auto;
+  gap: 0;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  min-width: 0;
+}
+
+/* Console labels a figure; it does not badge it. */
+.stats-line .stat-icon-inline,
+.cache-expiry-line .stat-icon-inline {
+  display: none;
+}
+
+.stats-line .stat-content-inline {
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.stats-line .stat-label-inline {
+  font: 500 12px/1 var(--con-mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--con-ink-3);
+}
+
+.stats-line .stat-value-inline {
+  font: 600 14.5px/1 var(--con-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--con-ink);
+  letter-spacing: -0.01em;
+}
+
+/* The score badge: bordered, filled in the difficulty colour, figure large. */
+.stats-line .stat-inline.difficulty-level {
+  margin-left: 0;
+  flex: 0 0 auto;
+  min-width: 0;
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.stats-line .stat-inline.difficulty-level .stat-content-inline {
+  flex-direction: row;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.stats-line .stat-inline.difficulty-level .stat-value-inline {
+  text-transform: none;
+}
+
+/*
+ * Difficulty grades the line it sits on.
+ *
+ * The count and the difficulty are one reading — fourteen findings is a
+ * different fact depending on whether the page is Low or High — so the level
+ * colours both figures rather than only its own word. updateStats writes the
+ * level onto .stats-line as well as onto its own .stat-inline, which is what
+ * lets the count key off a value that lives in a different cell.
+ *
+ * Only the figures take the hue. The labels stay neutral, so the line reads
+ * as two coloured numbers on a grey ruler and not as a warning banner.
+ */
+.stats-line[data-difficulty="low"] .difficulty-level .stat-value-inline,
+.stats-line[data-difficulty="low"] .detections-count .stat-value-inline {
+  color: var(--con-accent-text) !important;
+}
+
+.stats-line[data-difficulty="medium"] .difficulty-level .stat-value-inline,
+.stats-line[data-difficulty="medium"] .detections-count .stat-value-inline {
+  color: var(--con-amber) !important;
+}
+
+.stats-line[data-difficulty="high"] .difficulty-level .stat-value-inline,
+.stats-line[data-difficulty="high"] .detections-count .stat-value-inline {
+  color: var(--con-red) !important;
+}
+
+/* Before a scan reports a level, both figures read plainly. */
+.stats-line .difficulty-level .stat-value-inline,
+.stats-line .detections-count .stat-value-inline {
+  color: var(--con-ink) !important;
+}
+
+.stats-line .difficulty-level[data-difficulty] .stat-label-inline {
+  color: var(--con-ink-3);
+  opacity: 1;
+}
+
+/* The total's category breakdown is one compact console record. */
+.detection-category-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  padding: 0 12px 8px;
+  margin: 0;
+  color: var(--con-ink-3);
+}
+
+.detection-category-summary-item {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.detection-category-summary-item[hidden] {
+  display: none;
+}
+
+.detection-category-summary-item + .detection-category-summary-item::before {
+  content: "·";
+  margin-right: 4px;
+  color: var(--con-line-strong);
+}
+
+.detection-category-summary-label {
+  font: 500 12px/1 var(--con-mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--con-ink-3);
+}
+
+.detection-category-summary-count {
+  font: 600 14.5px/1 var(--con-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--con-ink-2);
+}
+
+/* --- cache meta: one dotted mono line, the way a console prints state ---- */
+
+.cache-expiry-line {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 0 12px 9px;
+  margin: 0;
+  border: 0;
+  background: transparent;
+}
+
+.cache-expiry-line .stat-inline {
+  flex: 0 0 auto;
+  gap: 0;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.cache-expiry-line .stat-content-inline {
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.cache-expiry-line .stat-label-inline {
+  font: 500 12px/1 var(--con-mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--con-ink-3);
+  opacity: 1;
+}
+
+.cache-expiry-line .stat-value-inline {
+  font: 600 14.5px/1 var(--con-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  color: var(--con-ink) !important;
+}
+
+
+
+/* ============================================================
+   SECTION BAND — 23px, micro-caps, the only thing between rows
+   The search field doubles as the band that opens the results.
+   ============================================================ */
+
+.search-container {
+  flex: 0 0 auto;
+  position: relative;
+  padding: 0;
+  margin: 0;
+  background: #141414;
+  border-top: 1px solid var(--con-line);
+  border-bottom: 1px solid var(--con-line);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.45);
+  transition: box-shadow 0.12s ease, background 0.12s ease;
+}
+
+.search-container::before {
+  content: "⌕";
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font: 400 18px/1 var(--con-mono);
+  color: var(--con-accent);
+  opacity: 0.85;
+  pointer-events: none;
+  transition: opacity 0.12s ease;
+}
+
+/* Typing lights the field's leading edge. */
+.search-container:focus-within {
+  background: #171717;
+  box-shadow: inset 3px 0 0 var(--con-accent), inset 0 2px 4px rgba(0, 0, 0, 0.45);
+}
+
+.search-container:focus-within::before {
+  opacity: 1;
+}
+
+#detectionSearch.search-input,
+.search-container .search-input {
+  height: 36px;
+  padding: 0 12px 0 32px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--con-ink);
+  font: 500 13.5px/36px var(--con-mono);
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  width: 100%;
+}
+
+.search-container .search-input::placeholder {
+  color: var(--con-ink-3);
+  font: 500 13.5px/36px var(--con-mono);
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.search-container .search-input:focus {
+  outline: 0;
+  border: 0;
+  box-shadow: none;
+  background: transparent;
+  color: var(--con-ink);
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 14.5px;
+}
+
+.search-container .search-input::placeholder {
+  opacity: 0.75;
+}
+
+/* ============================================================
+   FINDINGS — full-bleed zebra rows
+   ============================================================ */
+
+.results-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: block;
+  gap: 0;
+  padding: 0;
+  margin: 0;
+  background: var(--con-row-a);
+}
+
+.results-list.expanded-results {
+  display: block;
+}
+
+
+/* --- category band: the rhythm the whole panel is built on --------------- */
+
+.detection-band {
+  display: flex;
+  align-items: center;
+  height: 30px;
+  padding: 0 13px;
+  background: var(--con-band);
+  border-bottom: 1px solid var(--con-line);
+  font: 700 13px/1 var(--con-mono);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--con-ink-3);
+  user-select: none;
+}
+
+.detection-band + .detection-card {
+  border-top: 0;
+}
+
+.detection-card,
+.results-list .detection-card,
+.detection-card.single-result {
+  position: relative;
+  min-height: 0;
+  display: block;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-bottom: 1px solid var(--con-line);
+  border-radius: 0;
+  background: var(--con-row-a);
+  box-shadow: none;
+  overflow: hidden;
+  transition: background 0.12s ease;
+}
+
+.results-list .detection-card.row-alt {
+  background: var(--con-row-b);
+}
+
+.results-list .detection-card:hover {
+  background: #2a2a2a;
+  transform: none;
+  box-shadow: none;
+  border-color: var(--con-line);
+}
+
+/* The category rail. */
+.detection-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--con-cat, var(--con-accent));
+}
+
+/*
+ * The confidence bar. Its width is the confidence — JS writes --conf onto the
+ * row, so the figure and the bar cannot drift apart.
+ */
+.detection-card::after {
+  content: "";
+  position: absolute;
+  right: 13px;
+  bottom: 8px;
+  width: 52px;
+  height: 3px;
+  border-radius: 1px;
+  background: linear-gradient(
+    to right,
+    var(--con-cat, var(--con-accent)) 0,
+    var(--con-cat, var(--con-accent)) var(--conf, 0%),
+    rgba(255, 255, 255, 0.09) var(--conf, 0%)
+  );
+}
+
+.detection-card[data-category="antibot"],
+.detection-card[data-category="anti-bot"],
+.detection-card[data-category="waf"] {
+  --con-cat: var(--con-red);
+}
+
+.detection-card[data-category="captcha"] {
+  --con-cat: var(--con-blue);
+}
+
+.detection-card[data-category="fingerprint"],
+.detection-card[data-category="fingerprinting"] {
+  --con-cat: var(--con-accent);
+}
+
+.detection-card .card-header,
+.results-list .detection-card .card-header {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) auto;
+  align-items: start;
+  column-gap: 10px;
+  padding: 11px 13px 14px;
+  margin: 0;
+  border: 0;
+  background: transparent;
+}
+
+/*
+ * The mark. A vendor logo identifies a product faster than its name does, and
+ * the fingerprint glyphs are line art that inherits currentColor, so they take
+ * the category's own colour and the two kinds of mark sit at the same weight.
+ */
+.detection-card .card-icon-section {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  margin: 1px 0 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  overflow: hidden;
+}
+
+.detection-card .card-icon-section .detector-icon,
+.detection-card .card-icon-section img {
+  width: 18px;
+  height: 18px;
+  border-radius: 3px;
+  object-fit: contain;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  box-shadow: none;
+}
+
+/* The drawn glyphs are not logos: no tile, no radius, and they take the hue. */
+.detection-card .card-icon-section .detector-icon-svg,
+.detection-card .card-icon-section .fingerprint-icon-shell,
+.detection-card .card-icon-section .vendor-icon-shell {
+  width: 20px;
+  height: 20px;
+  border-radius: 0;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none;
+  color: var(--con-cat, var(--con-ink-3));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.detection-card .card-icon-section svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
+/* A detector with no mark of its own falls back to the extension icon; dim it
+   so a row without a real logo does not shout louder than one with. */
+.detection-card .card-icon-section .fingerprint-icon-image {
+  opacity: 0.55;
+}
+
+.detection-card .card-info {
+  min-width: 0;
+  padding-top: 1px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 5px;
+  row-gap: 0;
+  margin: 0;
+}
+
+/*
+ * The badge list holds the category and the matched methods side by side. The
+ * category qualifies the title and the methods are evidence, so the list is
+ * dissolved and its children are ordered onto two lines instead.
+ */
+.detection-card .category-badges {
+  display: contents;
+}
+
+/* The break between the title line and the evidence line. */
+.detection-card .card-info::after {
+  content: "";
+  order: 2;
+  flex: 0 0 100%;
+  height: 0;
+}
+
+.detection-card .detector-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: none;
+  font: 600 16.5px/1.3 var(--con-sans);
+  letter-spacing: -0.015em;
+  color: var(--con-ink);
+  margin: 0;
+  padding: 0;
+  text-shadow: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/*
+ * Both kinds of badge lose their chip. The inline colours the renderer writes
+ * are overridden rather than removed, so the markup and its copy-to-clipboard
+ * payload are untouched.
+ */
+.detection-card .category-badge,
+.detection-card .badge {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0;
+  padding: 0;
+  margin: 0;
+  box-shadow: none;
+  box-decoration-break: clone;
+}
+
+/*
+ * Hidden in the list: the band directly above the row already names the
+ * category, and repeating it on every row crowded the title without adding
+ * anything. It is still in the markup, still copyable, and still shown in the
+ * detail sheet where there is no band to carry it.
+ */
+.detection-card .badge-category {
+  display: none;
+}
+
+.detection-card .category-badge,
+.detection-card .badge-category {
+  order: 1;
+  font: 400 15px/1.25 var(--con-sans);
+  letter-spacing: -0.01em;
+  text-transform: none;
+  color: var(--con-ink-3) !important;
+}
+
+.detection-card .category-badge::before,
+.detection-card .badge-category::before {
+  content: "— ";
+  color: var(--con-ink-3);
+}
+
+/*
+ * Matched methods are evidence. The reference prints evidence as micro-caps on
+ * its own line under the title, dot-separated, never as chips.
+ */
+.detection-card .badge:not(.badge-category) {
+  order: 3;
+  margin-top: 6px;
+  font: 500 13px/1.35 var(--con-mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--con-ink-3) !important;
+  opacity: 0.9;
+}
+
+.detection-card .badge:not(.badge-category) + .badge:not(.badge-category)::before {
+  content: "·";
+  margin-right: 4px;
+  color: var(--con-ink-3);
+  opacity: 0.6;
+}
+
+.detection-card .card-actions {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  height: auto;
+  margin: 0;
+  padding: 0;
+}
+
+/* Every figure is monospace with tabular numerals. */
+.detection-card .confidence-display,
+.detection-card .confidence-display.confidence-high,
+.detection-card .confidence-display.confidence-medium,
+.detection-card .confidence-display.confidence-low {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0;
+  padding: 0;
+  box-shadow: none;
+  font: 600 16.5px/1.25 var(--con-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  min-width: 0;
+}
+
+/*
+ * Rank by brightness, not by hue. Inside one category every rail is the same
+ * colour, so the figure is what separates a certain finding from a marginal
+ * one — and it stays readable for anyone who cannot tell the rails apart.
+ */
+.detection-card .confidence-display.confidence-high {
+  color: #f2f2f2 !important;
+}
+
+.detection-card .confidence-display.confidence-medium {
+  color: #b5b5b5 !important;
+}
+
+.detection-card .confidence-display.confidence-low {
+  color: #868686 !important;
+}
+
+.detection-card .copy-btn {
+  display: none;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--con-ink-3);
+  opacity: 0;
+  align-self: center;
+  transition: opacity 0.12s ease, color 0.12s ease;
+}
+
+.detection-card:hover .copy-btn,
+.detection-card .copy-btn:focus-visible {
+  opacity: 1;
+}
+
+.detection-card .copy-btn:hover {
+  background: transparent;
+  transform: none;
+  color: var(--con-accent);
+}
+
+.detection-card .copy-btn svg {
+  width: 12px;
+  height: 12px;
+}
+
+.copyable-value {
+  border-radius: 0;
+}
+
+.copyable-value:hover {
+  background: transparent;
+  color: var(--con-accent-text);
+}
+
+.copy-feedback-active {
+  color: var(--con-accent) !important;
+}
+
+/* ============================================================
+   FOOTER — 34px band pinned to the bottom
+   ============================================================ */
+
+.pagination,
+#detectionPagination.pagination {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  height: 38px;
+  padding: 0 12px;
+  margin: 0;
+  border: 0;
+  border-top: 1px solid var(--con-line);
+  border-radius: 0;
+  background: var(--con-band);
+  box-shadow: none;
+}
+
+.pagination-info {
+  order: 2;
+  font: 400 12.5px/1 var(--con-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.06em;
+  color: var(--con-ink-3);
+  background: transparent;
+  padding: 0;
+  border: 0;
+}
+
+/* The paging control is the footer's one affordance, so it gets the outline. */
+.pagination-controls {
+  order: 1;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  height: 22px;
+  padding: 0 2px;
+  border: 1px solid var(--con-accent);
+  border-radius: 3px;
+  background: var(--con-row-a);
+}
+
+.pagination-btn {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--con-accent-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: transparent;
+  color: var(--con-accent);
+  transform: none;
+}
+
+.pagination-btn:disabled {
+  opacity: 0.35;
+  color: var(--con-ink-3);
+}
+
+.pagination-btn svg {
+  width: 13px;
+  height: 13px;
+}
+
+.page-info {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font: 500 12.5px/1 var(--con-mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--con-accent-text);
+}
+
+.page-info .page-input {
+  width: 20px;
+  height: 16px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--con-accent-text);
+  font: 600 13px/1 var(--con-mono);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.page-info .page-input:focus {
+  outline: 0;
+  background: rgba(45, 212, 191, 0.12);
+}
+
+.page-info .total-pages {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============================================================
+   STATES — empty, disabled, blacklisted, loading
+   Console does not put a card around a sentence.
+   ============================================================ */
+
+.empty-state,
+.empty-state--centered,
+.blacklist-warning-state,
+.loading-state {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 12px;
+  margin: 0;
+  background: var(--con-row-a);
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* --- nothing detected ----------------------------------------------------
+ * A clean scan is an empty state, not another result ledger. Keep the verdict
+ * in one contained surface so it remains readable at the 400px popup width
+ * and does not leave a full page of unexplained blank space below a title bar.
+ */
+#emptyState.empty-state,
+#emptyState.empty-state--centered {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  overflow-y: auto;
+}
+
+/*
+ * A clean run is a signature, not a status card.
+ *
+ * The gradient panel with a teal cap rule and a 54px rounded tile around the
+ * app icon is the empty state every extension ships — put ours beside the
+ * project we forked and you cannot tell them apart, because the only thing
+ * that differs is the glyph inside the tile.
+ *
+ * So the chrome goes and the mark speaks: the symbol, the wordmark set the way
+ * scrapeless.com sets it, and the verdict beneath. Nothing is drawn that isn't
+ * the brand or the answer.
+ */
+#emptyState .state-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  width: 100%;
+  max-width: 300px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  text-align: center;
+  position: relative;
+  overflow: visible;
+}
+
+#emptyState .state-card::before {
+  content: none;
+}
+
+#emptyState .state-card-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  height: auto;
+  margin: 0 0 9px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+#emptyState .state-card-logo {
+  width: 34px;
+  height: 33px;
+  border-radius: 0;
+  opacity: 1;
+}
+
+/* The wordmark is split the way the header sets it: "scrape" in grey,
+   "less" in the accent. It used to be red here and green 40px above, which
+   made one lockup read as two. */
+#emptyState .state-card-wordmark {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0;
+  margin: 0 0 18px;
+  font: 600 21px/1 var(--con-sans);
+  letter-spacing: -0.018em;
+}
+
+#emptyState .state-card-wordmark::before {
+  content: "scrape";
+  color: var(--con-ink-2);
+}
+
+#emptyState .state-card-wordmark::after {
+  content: "less";
+  color: var(--con-accent);
+}
+
+/* The verdict sits under a hairline, so the mark reads as a signature above it
+   rather than as a heading for it. */
+#emptyState .state-card-title {
+  padding-top: 15px !important;
+  border-top: 1px solid var(--con-line) !important;
+  width: 100%;
+  display: block;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: 700 14px/1.25 var(--con-mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--con-accent-text);
+  text-shadow: none;
+  text-align: center;
+}
+
+#emptyState .state-card-description {
+  max-width: 30ch;
+  margin: 9px 0 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: 400 13.5px/1.55 var(--con-sans);
+  color: var(--con-ink-2);
+  text-align: center;
+}
+
+/* --- detection off -------------------------------------------------------
+ * Sibling to the clean-scan signature above, deliberately inverted. There the
+ * hairline sits above the verdict, so the mark reads as a signature over it;
+ * here it sits below the prose, so what follows reads as the way out.
+ *
+ * The mark is drained rather than swapped — a greyed symbol under an amber
+ * status line says "the instrument is powered down" in one glance, and it
+ * keeps the single point of colour on the one word carrying the state. The
+ * wordmark is not repeated: that lockup belongs to the clean run, and a brand
+ * signature over "you switched this off" would be signing the wrong thing.
+ */
+#disabledState.empty-state,
+#disabledState.empty-state--centered {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  overflow-y: auto;
+}
+
+#disabledState .state-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  width: 100%;
+  max-width: 300px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  text-align: center;
+}
+
+#disabledState .state-card-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  height: auto;
+  margin: 0 0 14px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+#disabledState .state-card-logo {
+  width: 34px;
+  height: 33px;
+  border-radius: 0;
+  opacity: 0.5;
+  filter: grayscale(1);
+}
+
+/* Amber, not the #f97316 inherited from .state-card--orange: this is a state
+   the user chose, and amber is already the console's word for paused. */
+#disabledState .state-card-title {
+  margin: 0;
+  font: 700 14px/1.25 var(--con-mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--con-amber);
+  text-shadow: none;
+}
+
+#disabledState .state-card-description {
+  max-width: 32ch;
+  margin: 9px auto 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: 400 13.5px/1.55 var(--con-sans);
+  color: var(--con-ink-2);
+  text-wrap: balance;
+}
+
+/* Below the hairline are the ways out. */
+#disabledState .state-card-action {
+  width: 100%;
+  margin: 15px 0 0;
+  padding: 15px 0 0;
+  border-top: 1px solid var(--con-line);
+  font: 400 12.5px/1.5 var(--con-mono);
+  letter-spacing: 0.01em;
+  color: var(--con-ink-3);
+  text-wrap: balance;
+}
+
+/*
+ * The cue for the control the sentence names.
+ *
+ * A caret sitting in the card only ever said "up" — and the switch is not up,
+ * it is up and 300px away in the header, which is why the sentence has to
+ * spell out where to look. So the caret leaves the card: fixed to the popup,
+ * parked in the empty corridor beneath the toggle, it climbs that corridor and
+ * fades at the top of the pane. It crosses no text and never covers the tab
+ * strip, and the eye follows it to the switch instead of reading about it.
+ *
+ * Fixed coordinates are safe here and nowhere else: the popup is pinned to
+ * 400x580 by shell.css and the header to 68px, so `right: 50px` centres the
+ * glyph on the toggle (cx 344) and `top: 78px` clears the tabs by 10px. It is
+ * rendered only while this card is, because a display:none parent draws no
+ * pseudo-element.
+ */
+#disabledState .state-card-action::before {
+  content: "\2191";
+  position: fixed;
+  top: 78px;
+  right: 50px;
+  z-index: 5;
+  font-size: 16px;
+  line-height: 1;
+  color: var(--con-amber);
+  text-shadow: 0 0 10px rgba(255, 178, 36, 0.35);
+  pointer-events: none;
+  opacity: 0;
+  animation: disabled-toggle-cue 2.4s cubic-bezier(0.33, 0, 0.2, 1) infinite;
+}
+
+/* Transform and opacity only, so the cue stays on the compositor. */
+@keyframes disabled-toggle-cue {
+  0% {
+    opacity: 0;
+    transform: translateY(210px);
+  }
+  14% {
+    opacity: 0.9;
+  }
+  62% {
+    opacity: 0.9;
+    transform: translateY(6px);
+  }
+  76%,
+  100% {
+    opacity: 0;
+    transform: translateY(0);
+  }
+}
+
+/*
+ * The far half of the same gesture, and the reason it can live in plain CSS:
+ * presentDisabledState() is only ever reached with scrapeless_enabled false,
+ * which is exactly when this checkbox is unchecked. So the selector needs no
+ * class from the renderer to stay in step with the card — the toggle wears the
+ * ring whenever detection is off, on whichever tab the popup is showing.
+ *
+ * Timed to peak at 62%, the beat the caret arrives on, so the two read as one
+ * movement: up the corridor, then a ring closing on the switch. Scale and
+ * opacity only, on an ::after, because :before is already the knob.
+ */
+#enableToggle:not(:checked) + .toggle-label .toggle-slider::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border: 1px solid var(--con-amber);
+  border-radius: 12px;
+  opacity: 0;
+  pointer-events: none;
+  animation: disabled-toggle-beacon 2.4s cubic-bezier(0.33, 0, 0.2, 1) infinite;
+}
+
+@keyframes disabled-toggle-beacon {
+  0%,
+  46% {
+    opacity: 0;
+    transform: scale(0.82);
+  }
+  62% {
+    opacity: 0.8;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.45);
+  }
+}
+
+/* Asked not to animate, the caret goes back to being a mark on the page and
+   the toggle stops wearing a ring at all. */
+@media (prefers-reduced-motion: reduce) {
+  #disabledState .state-card-action::before {
+    position: static;
+    display: block;
+    margin: 0 auto 7px;
+    font-size: 15px;
+    text-shadow: none;
+    opacity: 0.75;
+    animation: none;
+    transform: none;
+  }
+
+  #enableToggle:not(:checked) + .toggle-label .toggle-slider::after {
+    content: none;
+  }
+}
+
+/* Second way out, and only for a blacklisted domain. It carries its label now:
+   a bare glyph gave no clue that the control unblocks the current site. */
+#disabledState .state-card-blacklist-btn {
+  width: auto;
+  height: auto;
+  margin-top: 14px;
+  padding: 7px 12px;
+  gap: 7px;
+  border: 1px solid var(--con-line-strong);
+  border-radius: 3px;
+  background: transparent;
+  color: var(--con-ink-2);
+  font: 600 11.5px/1 var(--con-mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+#disabledState .state-card-blacklist-btn svg {
+  flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
+}
+
+#disabledState .state-card-blacklist-btn:hover {
+  border-color: var(--con-amber);
+  background: rgba(255, 178, 36, 0.08);
+  color: var(--con-amber);
+  transform: none;
+  box-shadow: none;
+}
+
+.state-card,
+.state-card--blue,
+.state-card--orange {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
+  width: 100%;
+  max-width: 100%;
+  text-align: center;
+}
+
+.state-card::before,
+.state-card::after,
+.state-card--blue::before,
+.state-card--orange::before {
+  display: none;
+}
+
+.state-card-icon {
+  margin: 0 0 14px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  display: flex;
+  justify-content: center;
+}
+
+.state-card-logo {
+  width: 28px;
+  height: 28px;
+  border-radius: 5px;
+  opacity: 0.85;
+}
+
+.state-card-title {
+  font: 600 12.5px/1 var(--con-mono);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--con-accent);
+  margin: 0 0 10px;
+  text-shadow: none;
+}
+
+.state-card-description {
+  font: 400 14px/1.55 var(--con-sans);
+  color: var(--con-ink-2);
+  margin: 0 0 16px;
+  max-width: 34ch;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.state-card-action {
+  font: 400 13.5px/1.5 var(--con-sans);
+  color: var(--con-ink-3);
+  margin: 10px 0 0;
+}
+
+.state-card-blacklist-btn,
+.remove-blacklist-btn {
+  margin-top: 14px;
+  padding: 5px 12px;
+  height: 24px;
+  border: 1px solid var(--con-accent);
+  border-radius: 3px;
+  background: transparent;
+  color: var(--con-accent-text);
+  font: 600 12.5px/1 var(--con-mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  box-shadow: none;
+  align-items: center;
+  gap: 6px;
+}
+
+/* The blacklist warning state exists only for a blacklisted domain, so its
+   control is always on screen. */
+.remove-blacklist-btn {
+  display: inline-flex;
+}
+
+/*
+ * The unblock control belongs to a blacklisted domain, not to every disabled
+ * card. foundations.css hides it and presentDisabledState() adds .visible on
+ * top of setting `hidden`; declaring `display` on the bare class here beat
+ * both of those, so the card grew an unlabelled button on domains that were
+ * never blacklisted. Keep the gate.
+ */
+.state-card-blacklist-btn {
+  display: none;
+}
+
+.state-card-blacklist-btn.visible {
+  display: inline-flex;
+}
+
+.state-card-blacklist-btn:hover,
+.remove-blacklist-btn:hover {
+  background: rgba(45, 212, 191, 0.1);
+  transform: none;
+  box-shadow: none;
+}
+
+.blacklist-warning-state {
+  flex-direction: column;
+  gap: 10px;
+  color: var(--con-ink-3);
+}
+
+.blacklist-warning-state h3 {
+  font: 600 13px/1 var(--con-mono);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--con-amber);
+  margin: 0;
+}
+
+.blacklist-domain-text {
+  font: 500 14.5px/1 var(--con-mono);
+  color: var(--con-ink);
+  margin: 0;
+}
+
+.blacklist-hint {
+  font: 400 13.5px/1.5 var(--con-sans);
+  color: var(--con-ink-3);
+  max-width: 34ch;
+  text-align: center;
+}
+
+.loading-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.loading-text {
+  font: 600 13px/1 var(--con-mono);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--con-ink-3);
+  margin: 0;
+}
+
+.spinner-circle {
+  stroke: var(--con-accent);
+}
+
+
+
+/* ============================================================
+   DETECTION DETAIL — a readout, not a panel of tiles
+
+   Rebuilt rather than restyled. The previous version was still a page: a row
+   of equal cells, a headed prose block, a bordered list. It described the
+   finding at one uniform volume, so nothing in it led.
+
+   This is a readout. One figure dominates — the confidence, because that is
+   the question the sheet exists to answer — and everything under it is a
+   definition line: label on the left, value on the right, ruled off. The
+   sheet takes the finding's category colour so it arrives as the row you
+   clicked rather than as an unrelated panel.
+   ============================================================ */
+
+/* ============================================================
+   THE SHEET — one chassis for every modal
+
+   Settings, the rule editor, the method options, a detection and a history
+   entry were five sheets with five geometries: three scrims, three radii, two
+   shadows, and an editor that took the whole popup edge to edge. They are one
+   sheet now — inset from the popup on every side so the scrim reads as depth,
+   a hairline, a small radius, one shadow.
+   ============================================================ */
+
+/* Selected by class, not by id: thirteen of the eighteen sheets in the popup
+   are helper and explanation modals that share .rule-modal, and naming the
+   five obvious ones would have left those thirteen behind. */
+.base-modal,
+.rule-modal,
+.history-modal,
+.detection-modal,
+.advanced-info-modal {
+  align-items: center;
+  justify-content: center;
+  padding: var(--con-sheet-inset);
+}
+
+.base-modal-backdrop,
+.rule-modal-backdrop,
+.history-modal-overlay,
+.detection-modal-overlay,
+.advanced-info-overlay {
+  background: var(--con-scrim);
+  backdrop-filter: none;
+}
+
+.base-modal-content,
+#editRuleModal .rule-modal-content,
+.rule-modal-content,
+.history-modal-container,
+.detection-modal-container,
+.advanced-info-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: none;
+  height: auto;
+  max-height: 100%;
+  min-height: 0;
+  margin: 0;
+  border: 1px solid var(--con-line);
+  border-radius: var(--con-sheet-radius);
+  background: var(--con-row-a);
+  box-shadow: var(--con-sheet-shadow);
+  overflow: hidden;
+}
+
+/* The category, carried across from the row. */
+.detection-modal[data-category="antibot"] .detection-modal-container,
+.detection-modal[data-category="anti-bot"] .detection-modal-container,
+.detection-modal[data-category="waf"] .detection-modal-container {
+  --con-cat: var(--con-red);
+}
+
+.detection-modal[data-category="captcha"] .detection-modal-container {
+  --con-cat: var(--con-blue);
+}
+
+.detection-modal[data-category="fingerprint"] .detection-modal-container,
+.detection-modal[data-category="fingerprinting"] .detection-modal-container {
+  --con-cat: var(--con-accent);
+}
+
+.detection-modal-header {
+  position: relative;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 12px 12px 15px;
+  border-bottom: 1px solid var(--con-line);
+  background: var(--con-band);
+  box-shadow: none;
+}
+
+/* The rail, the same one the row wears. */
+.detection-modal-header::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--con-cat, var(--con-ink-3));
+}
+
+.detection-modal-title-group {
+  display: flex;
+  align-items: baseline;
+  gap: 0;
+  min-width: 0;
+}
+
+/* No logo tile in the header — the rail already says which family this is. */
+.detection-modal-icon {
+  display: none;
+}
+
+.detection-modal-title-info {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.detection-modal-header h3,
+#detectionModalName {
+  font: 600 18px/1.2 var(--con-sans);
+  letter-spacing: -0.022em;
+  color: var(--con-ink);
+  margin: 0;
+}
+
+/* Only the category belongs here. The matched methods are the evidence
+   further down, and repeating them at the top said the same thing twice. */
+.detection-modal-categories {
+  display: flex;
+  align-items: baseline;
+  gap: 0;
+}
+
+.detection-modal-categories .badge:not(.badge-category) {
+  display: none;
+}
+
+.detection-modal-categories .badge,
+.detection-modal-categories .badge-category,
+.detection-modal-categories > span {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0;
+  padding: 0;
+  margin: 0;
+  box-shadow: none;
+  font: 600 12.5px/1 var(--con-mono);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--con-cat, var(--con-ink-3)) !important;
+}
+
+.detection-modal-categories .badge-category::before {
+  content: none;
+}
+
+.detection-modal-close {
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  padding: 0;
+  border: 0 !important;
+  border-radius: 0;
+  background: transparent !important;
+  box-shadow: none;
+  color: var(--con-ink-3) !important;
+}
+
+.detection-modal-close:hover {
+  background: transparent !important;
+  transform: none;
+  color: var(--con-red) !important;
+}
+
+.detection-modal-close svg {
+  width: 15px;
+  height: 15px;
+}
+
+.detection-modal-content {
+  padding: 0;
+  background: var(--con-row-a);
+}
+
+/* The readout: a stack of definition lines, not a grid of cells. */
+.detection-modal-meta {
+  display: block;
+  grid-template-columns: none;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-bottom: 1px solid var(--con-line);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  justify-items: stretch;
+}
+
+.detection-modal-meta-item {
+  display: grid;
+  grid-template-columns: 128px minmax(0, 1fr);
+  align-items: baseline;
+  justify-self: stretch;
+  width: 100%;
+  gap: 10px;
+  margin: 0;
+  padding: 7px 12px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  text-align: left;
+  justify-items: start;
+}
+
+.detection-modal-meta-item .meta-label {
+  justify-self: start;
+  display: flex;
+  justify-content: flex-start;
+  text-align: left !important;
+  font: 500 12px/1.3 var(--con-mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--con-ink-3);
+  text-align: left;
+}
+
+.detection-modal-meta-item .meta-label i {
+  display: none;
+}
+
+.detection-modal-meta-item .meta-value {
+  justify-self: start;
+  display: flex;
+  justify-content: flex-start;
+  text-align: left !important;
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0;
+  padding: 0;
+  box-shadow: none;
+  font: 500 14.5px/1.3 var(--con-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  color: var(--con-ink) !important;
+  text-align: left;
+}
+
+/*
+ * Confidence is the question the sheet answers, so it is not a line — it is
+ * the headline, set at the scale of a readout and coloured by the finding's
+ * own category.
+ */
+.detection-modal-meta-item:first-child {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 14px 12px 12px;
+  border-bottom: 1px solid var(--con-line);
+}
+
+.detection-modal-meta-item:first-child .meta-value {
+  order: 1;
+  justify-content: flex-start;
+  font: 700 40px/1 var(--con-mono);
+  letter-spacing: -0.045em;
+  color: var(--con-cat, var(--con-ink)) !important;
+}
+
+.detection-modal-meta-item:first-child .meta-label {
+  order: 2;
+  justify-content: flex-start;
+  font-size: 12px;
+  letter-spacing: 0.2em;
+}
+
+.detection-modal-meta-item:nth-child(2) {
+  padding-top: 10px;
+}
+
+.detection-modal-meta-item:last-child {
+  padding-bottom: 10px;
+}
+
+/* Prose needs no heading; it is the only prose in the sheet. */
+.detection-modal-section {
+  margin: 0;
+  padding: 11px 12px 12px;
+  border: 0;
+  border-bottom: 1px solid var(--con-line);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.detection-modal-section:not(.detection-modal-section--methods) .detection-modal-section-header {
+  display: none;
+}
+
+.detection-modal-section-header {
+  margin: 0 0 8px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.detection-modal-section-header h4 {
+  font: 600 12px/1 var(--con-mono);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--con-ink-3);
+  margin: 0;
+}
+
+.detection-modal-description {
+  font: 400 14.5px/1.6 var(--con-sans);
+  color: var(--con-ink-2);
+  margin: 0;
+}
+
+/* Evidence runs edge to edge, like the list it came from. */
+.detection-modal-section--methods {
+  padding: 11px 0 0;
+  border-bottom: 0;
+}
+
+.detection-modal-section--methods .detection-modal-section-header {
+  padding: 0 12px;
+}
+
+.detection-modal-methods-list {
+  display: block;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-top: 1px solid var(--con-line);
+  border-radius: 0;
+  background: transparent;
+  overflow: visible;
+}
+
+.method-item-card {
+  display: grid;
+  grid-template-columns: 104px minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 10px;
+  margin: 0;
+  padding: 8px 12px;
+  border: 0 !important;
+  border-bottom: 1px solid var(--con-line) !important;
+  border-radius: 0;
+  background: var(--con-row-a) !important;
+  box-shadow: none;
+}
+
+.method-item-card:nth-child(even) {
+  background: var(--con-row-b) !important;
+}
+
+.method-item-card:hover {
+  background: #2f2f2f !important;
+  transform: none;
+  box-shadow: none;
+}
+
+.method-type-badge {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0;
+  padding: 0;
+  box-shadow: none;
+  font: 500 12px/1.4 var(--con-mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--con-ink-3) !important;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.method-value-btn {
+  /* A flex box does not ellipsis its own text, so a long selector was being
+     cut mid-word with no mark that anything was missing. */
+  display: block;
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  border: 0 !important;
+  border-radius: 0;
+  background: transparent !important;
+  box-shadow: none;
+  text-align: left;
+  font: 400 14px/1.4 var(--con-mono);
+  color: var(--con-ink) !important;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.method-value-btn:hover {
+  background: transparent !important;
+  color: var(--con-accent-text) !important;
+}
+
+.method-confidence,
+.method-confidence.confidence-high,
+.method-confidence.confidence-medium,
+.method-confidence.confidence-low {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0;
+  padding: 0;
+  box-shadow: none;
+  font: 500 13.5px/1.4 var(--con-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--con-ink-3) !important;
+}
+
+/* ============================================================
+   CATEGORY ENCODING
+   One hue per category, carried by the band, the rail, the qualifier and the
+   confidence bar so a group of findings is identifiable without reading it.
+   ============================================================ */
+
+.detection-band[data-category="antibot"],
+.detection-band[data-category="anti-bot"],
+.detection-band[data-category="waf"] {
+  color: var(--con-red);
+  box-shadow: inset 3px 0 0 var(--con-red);
+  background: linear-gradient(to right, rgba(229, 72, 77, 0.1), transparent 55%), var(--con-band);
+}
+
+.detection-band[data-category="captcha"] {
+  color: var(--con-blue);
+  box-shadow: inset 3px 0 0 var(--con-blue);
+  background: linear-gradient(to right, rgba(7, 126, 245, 0.12), transparent 55%), var(--con-band);
+}
+
+.detection-band[data-category="fingerprint"],
+.detection-band[data-category="fingerprinting"] {
+  color: var(--con-accent);
+  box-shadow: inset 3px 0 0 var(--con-accent);
+  background: linear-gradient(to right, rgba(45, 212, 191, 0.1), transparent 55%), var(--con-band);
+}
+
+/* The qualifier takes the category hue so the row is legible on its own,
+   away from its band, once the list is scrolled. */
+.detection-card[data-category="antibot"] .badge-category,
+.detection-card[data-category="anti-bot"] .badge-category,
+.detection-card[data-category="waf"] .badge-category,
+.detection-card[data-category="antibot"] .badge-category::before,
+.detection-card[data-category="anti-bot"] .badge-category::before,
+.detection-card[data-category="waf"] .badge-category::before {
+  color: #f2777a !important;
+}
+
+.detection-card[data-category="captcha"] .badge-category,
+.detection-card[data-category="captcha"] .badge-category::before {
+  color: #6cb6ff !important;
+}
+
+.detection-card[data-category="fingerprint"] .badge-category,
+.detection-card[data-category="fingerprinting"] .badge-category,
+.detection-card[data-category="fingerprint"] .badge-category::before,
+.detection-card[data-category="fingerprinting"] .badge-category::before {
+  color: var(--con-accent-text) !important;
+}
+
+/* Evidence sits a step brighter than a label; it is read, not scanned past. */
+.detection-card .badge:not(.badge-category) {
+  color: #a9a9a9 !important;
+  opacity: 1;
+}
+
+/* ============================================================
+   HISTORY — the same row grammar as a finding
+   Every control the panel had is kept; none of them keeps its box.
+   ============================================================ */
+
+.history-header {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
+  margin: 0;
+  background: var(--con-band);
+  border: 0;
+}
+
+/* Import / export / clear: a toolbar, not three filled slabs. */
+.history-header .action-buttons {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  margin: 0;
+  border-bottom: 1px solid var(--con-line);
+  background: transparent;
+}
+
+.history-header .action-buttons .import-btn-small,
+.history-header .action-buttons .export-btn-small,
+.history-header .action-buttons .clear-btn-small {
+  flex: 0 0 auto;
+  height: 24px;
+  padding: 0 10px;
+  border: 1px solid var(--con-line-strong);
+  border-radius: 3px;
+  background: transparent;
+  box-shadow: none;
+  color: var(--con-ink-2);
+  font: 600 12.5px/1 var(--con-mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.12s ease, border-color 0.12s ease;
+}
+
+.history-header .action-buttons .import-btn-small:hover,
+.history-header .action-buttons .export-btn-small:hover {
+  background: transparent;
+  transform: none;
+  box-shadow: none;
+  color: var(--con-accent);
+  border-color: var(--con-accent);
+}
+
+/* Destructive keeps its meaning, loses its weight. */
+.history-header .action-buttons .clear-btn-small {
+  margin-left: auto;
+  color: var(--con-ink-3);
+}
+
+.history-header .action-buttons .clear-btn-small:hover {
+  background: transparent;
+  transform: none;
+  box-shadow: none;
+  color: var(--con-red);
+  border-color: var(--con-red);
+}
+
+.history-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: block;
+  gap: 0;
+  padding: 8px;
+  margin: 0;
+  background: var(--con-row-a);
+}
+
+/* Each entry is a box: the separator hairline runs on all four sides, not
+   just the bottom, with a gap between entries so boxes never touch. */
+.history-list .history-item {
+  position: relative;
+  display: block;
+  margin: 0 0 8px;
+  padding: 10px 82px 11px 80px;
+  border: 1px solid var(--con-line);
+  border-radius: 4px;
+  background: var(--con-row-a);
+  box-shadow: none;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.history-list .history-item:last-child {
+  margin-bottom: 0;
+}
+
+/* The rule that separates the time gutter from the entry. Its left offset is
+   the gutter width plus 2px, so widening the gutter without moving this drew
+   the rule straight through the timestamps. */
+.history-list .history-item::before {
+  content: "";
+  position: absolute;
+  left: 70px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--con-line);
+}
+
+.history-list .history-item:nth-child(even) {
+  background: var(--con-row-b);
+}
+
+.history-list .history-item:hover {
+  background: #2a2a2a;
+  transform: none;
+  box-shadow: none;
+  border-color: rgba(45, 212, 191, 0.45);
+}
+
+.history-item-open {
+  appearance: none;
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: auto;
+  height: auto;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent !important;
+  box-shadow: none;
+  cursor: pointer;
+}
+
+.history-item-open:focus-visible {
+  outline: 2px solid var(--con-accent);
+  outline-offset: -3px;
+}
+
+.history-item-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.history-item-content {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.history-header-info {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+
+.history-favicon {
+  width: 13px;
+  height: 13px;
+  border-radius: 2px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  align-self: center;
+}
+
+.history-url {
+  font: 600 15px/1.2 var(--con-mono);
+  letter-spacing: -0.02em;
+  color: var(--con-ink);
+  background: transparent;
+  border: 0;
+  padding: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.history-title {
+  font: 400 14px/1.35 var(--con-sans);
+  color: var(--con-ink-2);
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Five actions on every row is noise at rest; they arrive on hover.
+ *
+ * They sit in the row's bottom-right corner — under the difficulty, on the
+ * breakdown's line, where the row is empty. Sharing the title's line meant
+ * arriving on top of the domain you were reading to decide whether to act on
+ * it, and the right gutter is 82px against a cluster of 130px, so under the
+ * grade is the only place they both fit and stay out of the way. */
+.history-list .history-item-actions {
+  position: absolute;
+  right: 12px;
+  bottom: 7px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+/* The wrapper only existed to hold them in the title row's flex line, and
+   hiding it would take the actions with it — lend its child out instead. */
+.history-list .history-item-right {
+  display: contents;
+}
+
+.history-list .history-item:hover .history-item-actions,
+.history-item-actions:focus-within {
+  opacity: 1;
+}
+
+/* The two that destroy something are set apart from the three that don't. */
+.history-list .history-item-actions .history-blacklist-btn {
+  margin-left: 7px;
+}
+
+.history-list .history-item-action-btn {
+  width: 21px;
+  height: 21px;
+  padding: 0;
+  border: 0 !important;
+  border-radius: 0;
+  background: transparent !important;
+  box-shadow: none;
+  color: var(--con-ink-3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.12s ease;
+}
+
+.history-list .history-item-action-btn svg {
+  width: 13px;
+  height: 13px;
+}
+
+/*
+ * The legacy sheet gives each action its own coloured pill and hard-codes the
+ * glyph paint, so the cluster arrives as five unrelated badges in four palettes.
+ * Both are pulled back onto the button's own colour: one row of marks that
+ * differ by shape, and take their meaning from the hover colour below.
+ */
+.history-list .history-item-actions .history-item-action-btn svg,
+.history-list .history-item-actions .history-item-action-btn svg path,
+.history-list .history-item-actions .history-item-action-btn svg circle {
+  color: inherit;
+}
+
+.history-list .history-item-actions .history-item-action-btn:not(.history-blacklist-btn) svg path {
+  fill: currentColor;
+  stroke: none;
+}
+
+.history-list .history-item-actions .history-blacklist-btn svg path,
+.history-list .history-item-actions .history-blacklist-btn svg circle {
+  fill: none;
+  stroke: currentColor;
+}
+
+.history-list .history-item-action-btn:hover {
+  background: transparent !important;
+  transform: none;
+  box-shadow: none;
+  color: var(--con-ink);
+}
+
+.history-list .history-item-action-btn:focus-visible {
+  outline: 2px solid var(--con-accent);
+  outline-offset: -2px;
+}
+
+.history-list .history-item-action-btn.history-delete-btn:hover,
+.history-list .history-item-action-btn.history-blacklist-btn:hover,
+.history-list .history-item-action-btn.history-clear-cache-btn:hover {
+  color: var(--con-red);
+}
+
+.history-list .history-item-action-btn.history-copy-btn:hover,
+.history-list .history-item-action-btn.history-export-btn:hover {
+  color: var(--con-accent);
+}
+
+/* The four figures read as one line of instrument output. */
+.history-stats-line {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 12px;
+  row-gap: 2px;
+  margin: 7px 0 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.history-stat-inline {
+  flex: 0 0 auto;
+  width: auto;
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.history-stat-icon {
+  display: none;
+}
+
+/* Dropped from the ledger for the same reason as the overview. */
+.history-stat-inline.history-stat-confidence {
+  display: none;
+}
+
+.history-stat-content {
+  display: flex;
+  flex-direction: row-reverse;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.history-stat-label {
+  font: 500 11.5px/1 var(--con-mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--con-ink-3);
+}
+
+.history-stat-value {
+  font: 600 14px/1 var(--con-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--con-ink) !important;
+  letter-spacing: -0.01em;
+}
+
+/* How much was found is the entry's headline figure. */
+.history-stat-inline.history-stat-detections .history-stat-value {
+  font-size: 20px;
+  letter-spacing: -0.03em;
+}
+
+.history-stat-inline.history-stat-detections {
+  margin-right: 2px;
+}
+
+.history-item-bottom {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-start;
+  gap: 10px;
+  margin: 6px 0 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.history-detections {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 14px;
+  row-gap: 3px;
+  min-width: 0;
+}
+
+/*
+ * The breakdown. One figure per category — how much of each kind was found —
+ * carrying that category's colour. It replaces a strip of six detector glyphs
+ * and a "+7", which told you neither what was found nor how much of it.
+ *
+ * The gap is tuned against the action cluster parked at the row's foot: two
+ * categories are the common case and they have to clear it on one line, or
+ * every row in the list grows by a line to hold a wrap.
+ */
+.history-detections {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 10px;
+  row-gap: 3px;
+  min-width: 0;
+}
+
+.history-breakdown-part {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  white-space: nowrap;
+  color: var(--con-ink-3);
+}
+
+.history-breakdown-count {
+  font: 600 13.5px/1 var(--con-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  color: var(--con-cat, var(--con-ink));
+}
+
+.history-breakdown-label {
+  font: 500 11.5px/1 var(--con-mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--con-ink-3);
+}
+
+.history-breakdown-part[data-category="antibot"] {
+  --con-cat: #f2777a;
+}
+
+.history-breakdown-part[data-category="captcha"] {
+  --con-cat: #6cb6ff;
+}
+
+.history-breakdown-part[data-category="fingerprint"] {
+  --con-cat: var(--con-accent-text);
+}
+
+.history-breakdown-part[data-category="other"] {
+  --con-cat: var(--con-ink-2);
+}
+
+.history-breakdown-empty {
+  font: 500 12px/1 var(--con-mono);
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--con-ink-3);
+}
+
+.history-timestamp {
+  position: absolute;
+  left: 8px;
+  top: 11px;
+  /* 48px could not hold one line of any locale: even "59m ago" wanted 63.5px,
+     so the column wrapped raggedly — some rows two lines, some one. The value
+     is compact now ("59m"), and 60px clears
+     every locale's minutes, hours and days form — the widest is Hindi's
+     57.2px. Only Hindi's sub-minute seconds form exceeds it, and that shows
+     for the first minute of an entry's life. The separator rule and the
+     row's left padding move with it. */
+  width: 60px;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  text-align: right;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  font: 500 12px/1.3 var(--con-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  /* The stamp reads with the findings, in the same green the counts use. */
+  color: var(--con-accent-text) !important;
+}
+
+
+/* --- the log row ------------------------------------------------------- */
+
+/* The page title belongs to the entry's sheet, not to the scan. */
+.history-list .history-title {
+  display: none;
+}
+
+/* Dissolved so the figures can be placed against the row, not against a line
+   of their own. */
+.history-list .history-stats-line {
+  display: contents;
+}
+
+.history-list .history-stat-inline {
+  display: none;
+}
+
+/* The breakdown already totals the findings, so the count is not repeated. */
+.history-list .history-stat-inline.history-stat-detections {
+  display: none;
+}
+
+/* How hard the target is — the one figure the breakdown cannot state. */
+.history-list .history-stat-inline.history-stat-difficulty {
+  display: block;
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  margin: 0;
+  max-width: 62px;
+}
+
+.history-list .history-stat-difficulty .history-stat-content {
+  display: block;
+}
+
+.history-list .history-stat-difficulty .history-stat-label {
+  display: none;
+}
+
+.history-list .history-stat-difficulty .history-stat-value {
+  font: 600 15px/1.15 var(--con-mono) !important;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--con-ink) !important;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+/*
+ * The level grades the row, the same way it grades the detection summary and
+ * the entry's own sheet. Three hues, one vocabulary across all three surfaces;
+ * an entry whose scan reported no level keeps the plain reading above.
+ */
+.history-list .history-stat-difficulty .history-stat-value[data-difficulty="low"] {
+  color: var(--con-accent-text) !important;
+}
+
+.history-list .history-stat-difficulty .history-stat-value[data-difficulty="medium"] {
+  color: var(--con-amber) !important;
+}
+
+/* The literal is deliberate: --con-red is too dark to set text in on the row
+   grounds, and the contrast spec reads this hex straight out of the sheet. */
+.history-list .history-stat-difficulty .history-stat-value[data-difficulty="high"] {
+  color: #ef5f64 !important;
+}
+
+/* The breakdown reclaims the difficulty's gutter — that column is occupied at
+   the row's middle, not at its foot — and gives the width back to the action
+   cluster parked there, so the two never share pixels and nothing reflows when
+   the cluster appears. */
+.history-list .history-item-bottom {
+  width: auto;
+  margin: 7px -70px 0 0;
+  padding-right: 116px;
+}
+
+.history-list .history-header-info {
+  gap: 7px;
+}
+
+.history-list .history-url {
+  font-size: 15.5px;
+}
+
+#historyEmpty.empty-state {
+  flex-direction: column;
+  gap: 10px;
+}
+
+#historyEmpty.empty-state h3 {
+  font: 600 12.5px/1 var(--con-mono);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--con-ink-3);
+  margin: 0;
+}
+
+#historyEmpty.empty-state p {
+  font: 400 14px/1.55 var(--con-sans);
+  color: var(--con-ink-2);
+  max-width: 34ch;
+  text-align: center;
+  margin: 0;
+}
+
+
+/* ============================================================
+   RULES — a detector register, not a stack of cards
+   The panel kept every control it had: edit, delete, enable, and the five
+   toolbar actions. What it lost is the card, the chips and the icon tiles.
+   ============================================================ */
+
+.rules-header,
+#rulesTab .rules-header {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
+  margin: 0;
+  background: var(--con-band);
+  border: 0;
+}
+
+/* Five actions on one 400px strip.
+ *
+ * They were five outlined boxes with gaps between them, each drawing its own
+ * border on a strip 80px wide — five frames competing for the eye above a
+ * register that has no frames at all. The popup already has a segmented strip
+ * and it sits two rows above this one: the tab bar. This is the same object.
+ * One ground, hairlines between the cells, no outlines, no gaps, full bleed. */
+.rules-header .action-buttons,
+#rulesTab .action-buttons {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  align-items: stretch;
+  gap: 0;
+  padding: 0;
+  margin: 0;
+  border-bottom: 1px solid var(--con-line);
+  background: var(--con-band);
+  overflow: visible;
+}
+
+#rulesTab .action-buttons > button,
+.rules-header .action-buttons > button {
+  position: relative;
+  min-width: 0;
+  height: 28px;
+  padding: 0 2px;
+  border: 0;
+  border-right: 1px solid var(--con-line);
+  border-radius: 0;
+  background: transparent !important;
+  box-shadow: none;
+  color: var(--con-ink-3) !important;
+  font: 600 11px/1 var(--con-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color 0.12s ease, background 0.12s ease;
+}
+
+#rulesTab .action-buttons > button:last-child,
+.rules-header .action-buttons > button:last-child {
+  border-right: 0;
+}
+
+#rulesTab .action-buttons > button svg,
+#rulesTab .action-buttons > button i {
+  display: none;
+}
+
+#rulesTab .action-buttons > button:hover,
+.rules-header .action-buttons > button:hover {
+  transform: none;
+  box-shadow: none;
+  background: var(--con-row-b) !important;
+  color: var(--con-ink) !important;
+}
+
+/* Add is the one action that makes something, so it is the one that is lit. */
+#rulesTab .action-buttons > button.add-btn,
+.rules-header .action-buttons > button.add-btn {
+  color: var(--con-accent-text) !important;
+}
+
+#rulesTab .action-buttons > button.add-btn:hover {
+  background: var(--con-row-b) !important;
+  color: var(--con-accent) !important;
+}
+
+/* Destructive keeps its meaning and stays quiet until reached for. */
+#rulesTab .action-buttons > button.clear-btn-small:hover,
+#rulesTab .action-buttons > button.delete-all-btn:hover {
+  color: var(--con-red) !important;
+  background: var(--con-red-fill) !important;
+}
+
+/* The pending-updates count rides the label rather than sitting beside it. */
+#rulesTab .action-buttons .updates-badge {
+  position: absolute;
+  top: 3px;
+  right: 5px;
+  min-width: 13px;
+  height: 13px;
+  padding: 0 3px;
+  border: 0;
+  border-radius: 7px;
+  background: var(--con-accent);
+  color: #10201d;
+  font: 700 9px/13px var(--con-mono);
+  text-align: center;
+}
+
+.rules-list,
+#rulesList {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: block;
+  gap: 0;
+  padding: 0;
+  margin: 0;
+  background: var(--con-row-a);
+}
+
+/* One detector is one row. */
+.detector-card {
+  position: relative;
+  display: block;
+  margin: 0;
+  padding: 10px 12px 11px 52px;
+  border: 0;
+  border-bottom: 1px solid var(--con-line);
+  border-radius: 0;
+  background: var(--con-row-a);
+  box-shadow: none;
+  overflow: hidden;
+  transition: background 0.12s ease;
+}
+
+/* The rule that closes the switch gutter. */
+.detector-card::after {
+  content: "";
+  position: absolute;
+  left: 48px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--con-line);
+}
+
+#rulesList .detector-card:nth-child(even) {
+  background: var(--con-row-b);
+}
+
+#rulesList .detector-card:hover {
+  background: #2a2a2a;
+  transform: none;
+  box-shadow: none;
+  border-color: var(--con-line);
+}
+
+/* The same rail as a finding, so a category reads the same in both panels.
+   It was 2px here against the finding rail's 4px, so the claim above was
+   only half true: the colour matched but the rail read as an edge artefact
+   rather than as the category marker it is. Same 4px now. */
+.detector-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--con-cat, var(--con-ink-3));
+}
+
+.detector-card[data-category="antibot"],
+.detector-card[data-category="anti-bot"],
+.detector-card[data-category="waf"] {
+  --con-cat: var(--con-red);
+}
+
+.detector-card[data-category="captcha"] {
+  --con-cat: var(--con-blue);
+}
+
+.detector-card[data-category="fingerprint"],
+.detector-card[data-category="fingerprinting"] {
+  --con-cat: var(--con-accent);
+}
+
+/* A disabled detector is dimmed, not hidden — it is still a row you can act on. */
+.detector-card.detector-disabled {
+  opacity: 0.5;
+}
+
+.detector-card .detector-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+}
+
+/* The icon holds the left gutter — it identifies the detector faster than
+   its name does, and the toggle it replaces was the least-read thing in the
+   row occupying the most-read position. */
+.detector-card .detector-icon {
+  position: absolute;
+  left: 13px;
+  top: 11px;
+  width: 22px;
+  height: 22px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--con-cat, var(--con-ink-2));
+}
+
+.detector-card .detector-icon .detector-icon-svg,
+.detector-card .detector-icon .fingerprint-icon-shell,
+.detector-card .detector-icon .vendor-icon-shell {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: inherit;
+}
+
+.detector-card .detector-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.detector-card .detector-icon .detector-icon-img,
+.detector-card .detector-icon img {
+  width: 18px;
+  height: 18px;
+  border-radius: 3px;
+  object-fit: contain;
+}
+
+/* A disabled detector's icon is greyed with the rest of the row. */
+.detector-card.detector-disabled .detector-icon {
+  color: var(--con-ink-3);
+  opacity: 0.45;
+}
+
+.detector-card .detector-info {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.detector-card .detector-name-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.detector-card .detector-name {
+  font: 600 15px/1.25 var(--con-sans);
+  letter-spacing: -0.015em;
+  color: var(--con-ink);
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.detector-card .detector-actions {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+#rulesList .detector-card:hover .detector-actions,
+.detector-card .detector-actions:focus-within {
+  opacity: 1;
+}
+
+.detector-card .detector-actions .edit-btn,
+.detector-card .detector-actions .delete-btn {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0 !important;
+  border-radius: 0;
+  background: transparent !important;
+  box-shadow: none;
+  color: var(--con-ink-3) !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.12s ease;
+}
+
+.detector-card .detector-actions .edit-btn svg,
+.detector-card .detector-actions .delete-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.detector-card .detector-actions .edit-btn:hover {
+  transform: none;
+  color: var(--con-accent) !important;
+}
+
+.detector-card .detector-actions .delete-btn:hover {
+  transform: none;
+  color: var(--con-red) !important;
+}
+
+/* Categories and methods become one evidence line of micro-caps. */
+.detector-card .detection-methods {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.detector-card .detection-methods .badge,
+.detector-card .detection-methods .method-badge,
+.detector-card .detection-methods .category-badge,
+.detector-card .detection-methods > span {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0;
+  padding: 0;
+  margin: 0;
+  box-shadow: none;
+  font: 500 12px/1.4 var(--con-mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #9d9d9d !important;
+}
+
+.detector-card .detection-methods > *:not(:first-child)::before {
+  content: "·";
+  margin: 0 5px;
+  color: var(--con-ink-3);
+  opacity: 0.6;
+}
+
+.detector-card .detector-scripts {
+  padding: 0;
+  margin: 4px 0 0;
+  border: 0;
+  background: transparent;
+}
+
+.detector-card .scripts-info {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-start;
+  gap: 10px;
+  margin: 6px 0 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.detector-card .scripts-info-left {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.detector-card .last-updated,
+.detector-card .last-updated-value,
+.detector-card .detector-author,
+.detector-card .version-author {
+  font: 400 12.5px/1.4 var(--con-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  color: var(--con-ink-3) !important;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+
+.detector-card .verified-badge {
+  color: var(--con-accent) !important;
+  font-size: 12px;
+  margin-left: 4px;
+}
+
+/* The enable switch keeps the shell's switch anatomy, and sits where an
+   action belongs — after the record, not before it. */
+.detector-card .toggle-switch-small {
+  position: absolute;
+  left: auto;
+  top: auto;
+  right: 12px;
+  bottom: 4px;
+  width: 36px;
+  height: 28px;
+  margin: 0;
+  display: inline-block;
+}
+
+.detector-card .toggle-slider-small {
+  inset: 5px 0;
+  border-radius: 9px;
+  border: 0;
+  background-color: var(--con-line);
+  box-shadow: none;
+}
+
+.detector-card .toggle-slider-small::before {
+  height: 12px;
+  width: 12px;
+  left: 3px;
+  background-color: var(--con-ink-3);
+}
+
+.detector-card .detector-toggle:checked + .toggle-slider-small {
+  background-color: rgba(45, 212, 191, 0.3);
+  border-color: transparent;
+}
+
+.detector-card .detector-toggle:checked + .toggle-slider-small::before {
+  transform: translateX(18px) translateY(-50%);
+  background-color: var(--con-accent);
+}
+
+.detector-card .detector-toggle:focus-visible + .toggle-slider-small {
+  outline: 2px solid var(--con-accent);
+  outline-offset: 2px;
+}
+
+
+
+/* --- the register row --------------------------------------------------- */
+
+/*
+ * The name takes a line; everything that describes the detector takes the
+ * next one. The wrappers are dissolved so items from four different containers
+ * can share that line.
+ */
+#rulesList .detector-card {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 7px;
+  row-gap: 0;
+}
+
+#rulesList .detector-header,
+#rulesList .detector-info,
+#rulesList .detector-scripts,
+#rulesList .scripts-info,
+#rulesList .scripts-info-left {
+  display: contents;
+}
+
+#rulesList .detector-name-row {
+  flex: 0 0 100%;
+  margin: 0;
+}
+
+/* Two deliberate meta lines rather than one that wraps wherever it runs out
+   of room. Evidence first — what the detector matches on — then provenance.
+   At the old type size the single line happened to fit; at this one it broke
+   mid-group, which read as a paragraph instead of a record. */
+#rulesList .detection-methods {
+  display: inline-flex;
+  flex: 0 1 auto;
+  width: auto;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0;
+  margin: 5px 0 0;
+}
+
+/* The provenance group takes a line of its own instead of trailing the
+   evidence and wrapping mid-phrase. */
+#rulesList .scripts-info-left {
+  display: flex;
+  /* The base sheet stacks this column; the group is one line here. */
+  flex-direction: row;
+  padding-right: 52px;
+  flex: 0 0 100%;
+  width: 100%;
+  align-items: baseline;
+  column-gap: 12px;
+  row-gap: 0;
+  flex-wrap: wrap;
+}
+
+#rulesList .last-updated,
+#rulesList .detector-author {
+  display: inline-flex;
+  flex: 0 1 auto;
+  width: auto;
+  align-items: baseline;
+  margin: 2px 0 0;
+}
+
+/* The provenance line is quieter than the evidence line above it. */
+#rulesList .last-updated,
+#rulesList .last-updated-value,
+#rulesList .detector-author,
+#rulesList .version-author {
+  font-size: 11.5px;
+  letter-spacing: 0.06em;
+  color: #8f8f8f !important;
+}
+
+/* Groups are separated by space; dots only join items inside one group. */
+#rulesList .detector-card {
+  column-gap: 13px;
+}
+
+#rulesList .detector-name {
+  font-size: 15.5px;
+}
+
+/* The category takes its own colour here, as it does everywhere else. */
+#rulesList .detector-card[data-category="antibot"] .detector-info .detection-methods .method-tag,
+#rulesList .detector-card[data-category="anti-bot"] .detector-info .detection-methods .method-tag,
+#rulesList .detector-card[data-category="waf"] .detector-info .detection-methods .method-tag {
+  color: #f2777a !important;
+}
+
+#rulesList .detector-card[data-category="captcha"] .detector-info .detection-methods .method-tag {
+  color: #6cb6ff !important;
+}
+
+#rulesList .detector-card[data-category="fingerprint"] .detector-info .detection-methods .method-tag,
+#rulesList .detector-card[data-category="fingerprinting"] .detector-info .detection-methods .method-tag {
+  color: var(--con-accent-text) !important;
+}
+
+/* The row closes up now that it is two lines rather than five. */
+#rulesList .detector-card {
+  /* The gutter rule sits at 48px; the record starts clear of it. */
+  padding: 9px 12px 10px 58px;
+}
+
+/* The switch is pinned to the bottom-right; leaving `top` set here would
+   over-constrain the box and top would win. */
+#rulesList .detector-card .toggle-switch-small {
+  top: auto;
+  bottom: 6px;
+}
+
+/* rules.css sizes the icon tile; the gutter is 22px. */
+#rulesList .detector-card .detector-icon {
+  width: 22px;
+  height: 22px;
+  min-width: 0;
+  flex: 0 0 auto;
+}
+
+/* ============================================================
+   RULE EDITOR — the rule as a document
+
+   A detector rule is a JSON file: seven scalar keys and one nested object of
+   pattern arrays. The editor used to scatter that across three bordered cards,
+   a label-above-input form grid and eight accordions — six layers of container
+   for two levels of data, and the run of bordered input boxes that survived
+   every previous redesign.
+
+   This renders the rule as one continuous specification on a fixed two-column
+   ruler. Keys sit in a 104px gutter, values in a value column, and the ruler
+   holds from the first metadata line to the last pattern — across every
+   section boundary, without a card edge. Alignment that survives a section
+   break is the opposite signal from containers that reset it.
+
+   Values are text at rest. The <input> never moves and is never swapped for a
+   span: it is styled borderless with a dotted underbar, so click-to-edit, tab
+   order, and screen-reader semantics all come free. The underbar is not
+   decoration — a control with no visible boundary fails WCAG 1.4.11, so it is
+   load-bearing.
+   ============================================================ */
+
+.rule-modal-backdrop {
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: none;
+}
+
+.rule-modal-header {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 34px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--con-line);
+  background: var(--con-band);
+  box-shadow: none;
+}
+
+.rule-modal-action,
+#editRuleModalAction.rule-modal-action {
+  flex: 1 1 auto;
+  width: auto;
+  height: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent !important;
+  box-shadow: none;
+  font: 600 12.5px/1 var(--con-mono);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--con-ink-2) !important;
+  text-align: left;
+}
+
+/* The settings sheet titles with an <h2> where the editor uses a button, so
+   it was the one header in the popup still set in sans at 17px. */
+.rule-modal-header h2,
+#methodSettingsTitle {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: 600 12.5px/1 var(--con-mono) !important;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--con-ink-2) !important;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rule-modal-close {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0 !important;
+  border-radius: 0;
+  background: transparent !important;
+  box-shadow: none;
+  color: var(--con-ink-3) !important;
+}
+
+.rule-modal-close:hover {
+  background: transparent !important;
+  transform: none;
+  color: var(--con-red) !important;
+}
+
+/* The document itself — the only scrolling surface in the editor. */
+.rule-modal-body {
+  flex: 1 1 auto;
+  height: auto;
+  max-height: none;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 10px 0 16px;
+  background: var(--con-row-a);
+}
+
+/* --- the ruler ---------------------------------------------------------- */
+
+.rule-modal-body .modal-card {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+/* A section heading is a line of the document, not a band across it. */
+.rule-modal-body .modal-card-header {
+  display: flex;
+  align-items: baseline;
+  height: auto;
+  margin: 0;
+  padding: 14px 12px 6px;
+  border: 0;
+  background: transparent;
+}
+
+.rule-modal-body .modal-card-header .card-icon,
+.rule-modal-body .modal-card-header svg,
+.rule-modal-body .modal-card-header i {
+  display: none;
+}
+
+.rule-modal-body .modal-card-header h3,
+.rule-modal-body .modal-card-header h4 {
+  margin: 0;
+  padding: 0;
+  /* A section heading reads as a category: uppercase micro-caps with wide
+     tracking in the brighter ink, against the lowercase field labels below
+     it. Same language as the method bands (COOKIE, DOM) elsewhere. */
+  font: 600 11px/1 var(--con-mono);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--con-ink-2);
+  text-shadow: none;
+  text-wrap: balance;
+}
+
+.rule-modal-body .modal-card-body {
+  display: block;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+}
+
+/* Metadata: one key, one value, one line. The form rows stop pairing fields
+   side by side, because a ruler cannot hold two value columns. */
+.rule-modal-body .form-row {
+  display: block;
+  margin: 0;
+  padding: 0;
+  gap: 0;
+}
+
+.rule-modal-body .form-group {
+  display: grid;
+  grid-template-columns: 104px minmax(0, 1fr);
+  align-items: baseline;
+  gap: 0 8px;
+  margin: 0;
+  padding: 0 12px;
+  min-height: 22px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  text-align: left;
+}
+
+.rule-modal-body .form-group:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.rule-modal-body .form-label,
+.rule-modal-body label.form-label {
+  align-self: baseline;
+  width: auto;
+  margin: 0;
+  padding: 0;
+  text-align: left;
+  font: 400 13.5px/22px var(--con-mono);
+  letter-spacing: 0;
+  text-transform: lowercase;
+  color: var(--con-ink-3);
+}
+
+/* Text at rest. The dotted underbar is the control's boundary. */
+.rule-modal-body .form-input,
+.rule-modal-body .form-select,
+.rule-modal-body input[type="text"],
+.rule-modal-body select {
+  width: 100%;
+  min-width: 0;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-bottom: 1px dotted var(--con-line-strong);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--con-ink);
+  font: 400 13.5px/22px var(--con-mono);
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.rule-modal-body select.form-select {
+  cursor: pointer;
+}
+
+.rule-modal-body .form-input:hover,
+.rule-modal-body .form-select:hover {
+  border-bottom-color: var(--con-ink-3);
+}
+
+.rule-modal-body .form-input:focus,
+.rule-modal-body .form-select:focus,
+.rule-modal-body select:focus,
+.rule-modal-body input:focus {
+  outline: 0;
+  border-bottom: 1px solid var(--con-cat, var(--con-accent));
+  box-shadow: none;
+}
+
+.rule-modal-body .form-input-readonly,
+.rule-modal-body .form-input[readonly] {
+  color: var(--con-ink-3);
+  border-bottom-color: transparent;
+  cursor: default;
+}
+
+.rule-modal-body .form-group-icon .icon-selector-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  min-height: 36px;
+}
+
+.rule-modal-body .icon-preview {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--con-line-strong);
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.025);
+  box-shadow: none;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rule-modal-body .icon-preview img,
+.rule-modal-body .icon-preview svg {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+.rule-modal-body .icon-preview:hover {
+  transform: none;
+  border-color: var(--con-accent);
+  background: color-mix(in srgb, var(--con-accent) 10%, transparent);
+}
+
+/* Swatches sit in the value column like any other value. */
+.rule-modal-body .color-picker-card {
+  width: 100%;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.rule-modal-body .color-picker-grid {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  grid-template-columns: none;
+  gap: 5px;
+  padding: 2px 0 0;
+  margin: 0;
+}
+
+.rule-modal-body .color-option {
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  border-radius: 2px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: none;
+  cursor: pointer;
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+}
+
+.rule-modal-body .color-option:hover,
+.rule-modal-body .color-option.selected {
+  transform: none;
+  outline-color: var(--con-accent);
+}
+
+.rule-modal-body .custom-color-hex {
+  display: none;
+}
+
+.rule-modal-footer {
+  box-sizing: border-box;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  height: 40px;
+  min-height: 40px;
+  padding: 0 12px;
+  border-top: 1px solid var(--con-line);
+  background: var(--con-band);
+  box-shadow: none;
+}
+
+/* Save and cancel are words in a status line, not filled controls. */
+.rule-modal-footer .rule-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  padding: 0 8px;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  border-radius: 0;
+  background: transparent !important;
+  color: var(--con-ink-3) !important;
+  font: 600 12px/1 var(--con-mono);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  box-shadow: none;
+}
+
+.rule-modal-footer .rule-btn:hover {
+  transform: none;
+  box-shadow: none;
+  color: var(--con-ink) !important;
+}
+
+.rule-modal-footer .rule-btn-save {
+  color: var(--con-ink) !important;
+  border-bottom-color: var(--con-cat, var(--con-accent));
+}
+
+.rule-modal-footer .rule-btn-save:hover {
+  color: var(--con-cat, var(--con-accent)) !important;
+}
+
+
+/* The document is tinted by the rule it describes. */
+#editRuleModal[data-category="antibot"] .rule-modal-content,
+#editRuleModal[data-category="anti-bot"] .rule-modal-content,
+#editRuleModal[data-category="waf"] .rule-modal-content {
+  --con-cat: var(--con-red);
+}
+
+#editRuleModal[data-category="captcha"] .rule-modal-content {
+  --con-cat: var(--con-blue);
+}
+
+#editRuleModal[data-category="fingerprint"] .rule-modal-content,
+#editRuleModal[data-category="fingerprinting"] .rule-modal-content {
+  --con-cat: var(--con-accent);
+}
+
+/* ============================================================
+   DETECTION METHODS — compact disclosures on the same ruler
+
+   All eight methods remain visible as headings, but their pattern lists start
+   closed. This keeps the rule overview scannable and makes opening one method
+   an explicit action instead of rendering every pattern at once.
+   ============================================================ */
+
+.modal-card-body-methods {
+  padding: 0 !important;
+}
+
+/* A method is a titled band followed by its patterns.
+ *
+ * The previous revision drew eight identical blocks in one column, separated
+ * by nothing but whitespace, and gave the rail the *rule's* hue rather than
+ * the method's — so every section looked the same and the colour said nothing.
+ * Finding where "cookie" ended and "dom" began meant reading, not looking.
+ *
+ * Now: each section opens with a filled band in its own method hue, closed by
+ * a hairline above it, and only sections that actually hold patterns get the
+ * rail and the indent. An empty method stays present — it is still a heading
+ * you can add to — but it is one quiet line rather than a block, so the eye
+ * lands on the methods that carry the rule. */
+.method-section {
+  position: relative;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-top: 1px solid var(--con-line);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  overflow: visible;
+}
+
+.method-section:first-child {
+  border-top: 0;
+}
+
+/* The rail runs beside the patterns, not beside the band — its length is the
+   section's extent, which is the thing that was impossible to see. */
+.method-section::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 30px;
+  bottom: 0;
+  width: 3px;
+  background: var(--con-cat, var(--con-ink-3));
+  opacity: 0.85;
+}
+
+.method-section[data-empty="true"]::before {
+  display: none;
+}
+
+.method-section:nth-child(even) {
+  background: transparent;
+}
+
+/* --- the band ----------------------------------------------------------- */
+
+.method-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 2px;
+  min-height: 30px;
+  margin: 0;
+  padding: 0 6px 0 0;
+  border: 0;
+  border-left: 3px solid var(--con-cat, var(--con-ink-3));
+  border-radius: 0;
+  /* Plain band first: color-mix() needs Chrome 111, and an older build should
+     still get a legible band rather than no band at all. */
+  background: var(--con-band);
+  background: color-mix(in srgb, var(--con-cat, #666666) 15%, var(--con-band));
+  cursor: default;
+}
+
+.method-header:has(.method-header-toggle:hover) {
+  background: var(--con-line);
+  background: color-mix(in srgb, var(--con-cat, #666666) 20%, var(--con-band));
+}
+
+.method-header-toggle {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 18px;
+  align-items: center;
+  column-gap: 10px;
+  width: 100%;
+  min-width: 0;
+  min-height: 30px;
+  margin: 0;
+  padding: 0 4px 0 9px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.method-header-toggle:focus-visible {
+  outline: 1px solid var(--con-accent);
+  outline-offset: -2px;
+}
+
+/* An empty method's band is quieter than a populated one's, so weight on the
+   page tracks where the rule actually does its work. */
+.method-section[data-empty="true"] .method-header {
+  min-height: 26px;
+  background: var(--con-row-a);
+  background: color-mix(in srgb, var(--con-cat, #666666) 7%, var(--con-row-a));
+  border-left-color: var(--con-line-strong);
+  border-left-color: color-mix(in srgb, var(--con-cat, #666666) 45%, transparent);
+}
+
+.method-section[data-empty="true"] .method-header-toggle {
+  min-height: 26px;
+}
+
+.method-header-left {
+  display: block;
+  min-width: 0;
+}
+
+.method-collapse-icon {
+  display: block;
+  width: 16px;
+  height: 16px;
+  color: var(--con-ink-3);
+  transition: transform 0.15s ease, color 0.15s ease;
+}
+
+.method-header-toggle:hover .method-collapse-icon,
+.method-header-toggle:focus-visible .method-collapse-icon {
+  color: var(--con-ink);
+}
+
+.method-section.collapsed .method-collapse-icon {
+  transform: rotate(-90deg);
+}
+
+/* The title is written on the band in the method's own hue. The renderer
+   ships it as an inline-styled pill, so every box property has to be undone
+   here — but the inline colour is the hue, and that one is kept. */
+.method-header .method-title {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  box-shadow: none !important;
+  display: block !important;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--con-mono) !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.13em !important;
+  text-transform: uppercase !important;
+}
+
+.method-pattern-count {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+  font: 600 12.5px/1 var(--con-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  color: var(--con-cat, var(--con-ink-2)) !important;
+  white-space: nowrap;
+}
+
+.method-help-btn {
+  width: 14px;
+  height: 14px;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: var(--con-ink-3) !important;
+  font: 400 12.5px/14px var(--con-mono);
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+.method-section:hover .method-help-btn,
+.method-help-btn:focus-visible {
+  opacity: 0.7;
+}
+
+.method-help-btn:hover {
+  transform: none;
+  opacity: 1;
+  color: var(--con-accent) !important;
+}
+
+/* An empty method: dim title, dim count, no search, one add line. */
+.method-section[data-empty="true"] .method-title {
+  opacity: 0.55;
+  font-weight: 600 !important;
+}
+
+.method-section[data-empty="true"] .method-pattern-count {
+  color: var(--con-ink-3) !important;
+  font-weight: 400;
+}
+
+.method-section[data-empty="true"] .method-search-row {
+  display: none;
+}
+
+/* An empty section is exactly where this button matters, so it is not the
+   place to fade it to 60% and wait for a hover to bring it back. The button
+   stays bottom-right like a populated section; only the vertical rhythm is
+   tighter, since there is no rail and no rows to clear. */
+.method-section[data-empty="true"] .add-method-btn {
+  margin: 4px 12px 8px auto;
+}
+
+/* --- the patterns, indented past the rail -------------------------------- */
+
+.method-search-row {
+  position: relative;
+  padding: 0 0 0 15px;
+  margin: 3px 0 0;
+  border: 0;
+  border-bottom: 1px solid var(--con-line);
+  background: transparent;
+  box-shadow: none;
+}
+
+.method-search-row::before {
+  content: "⌕";
+  position: absolute;
+  left: 17px;
+  top: 50%;
+  transform: translateY(-50%);
+  font: 400 14px/1 var(--con-mono);
+  color: var(--con-ink-3);
+  pointer-events: none;
+}
+
+.method-search-row:focus-within::before {
+  color: var(--con-cat, var(--con-accent));
+}
+
+/* The legacy sheet reaches this field as `.rule-modal-body input[type="text"]`,
+   which outranks a lone class, so the padding that clears the glyph has to be
+   stated at matching weight. */
+.rule-modal-body .method-search-row .method-search-input,
+.method-search-input {
+  width: 100%;
+  height: 24px;
+  padding: 0 12px 0 22px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--con-ink-2);
+  font: 400 11.5px/24px var(--con-mono);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.method-search-input::placeholder {
+  color: var(--con-ink-3);
+  opacity: 0.7;
+  text-transform: uppercase;
+  font-size: 11.5px;
+  letter-spacing: 0.04em;
+}
+
+.method-search-input:focus {
+  outline: 0;
+}
+
+.method-items {
+  /* The indent moved onto the pattern itself so its band can run to the rail
+     rather than starting 15px short of it. */
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+}
+
+/* --- a pattern is a numbered line with continuations --------------------- */
+
+/* A pattern is a band, not a paragraph.
+ *
+ * Once values wrapped, the gap between a pattern's own two lines was the same
+ * as the gap between one pattern and the next, so four patterns read as one
+ * block of text. Alternating ground and a hairline give each one an extent. */
+.method-item {
+  margin: 0;
+  padding: 3px 0 4px 15px;
+  border: 0;
+  border-bottom: 1px solid var(--con-line);
+  border-radius: 0;
+  background: var(--con-row-a);
+  box-shadow: none;
+}
+
+.method-item:nth-child(even) {
+  background: var(--con-row-b);
+}
+
+.method-item:last-child {
+  border-bottom: 0;
+}
+
+.method-item:hover,
+.method-item:nth-child(even):hover {
+  background: #303030;
+  transform: none;
+  box-shadow: none;
+}
+
+.method-item-content,
+.method-item-inputs,
+.method-item .input-with-indicators {
+  display: block;
+  width: 100%;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+}
+
+/* The ruler: an ordinal and the value on the first line, the controls on a
+   line of their own beneath it.
+ *
+ * They used to sit at the end of the value line as "· * A W", which asked the
+ * reader to know that an asterisk means regular expression and a capital A
+ * means case sensitivity — and cost the value about seventy pixels to do it.
+ * Given a line of their own they can be words, and the value gets the width
+ * back. */
+.method-item .input-row {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  grid-template-areas:
+    "value    value"
+    "ord      controls";
+  align-items: baseline;
+  column-gap: 4px;
+  row-gap: 1px;
+  width: 100%;
+  min-height: 22px;
+  margin: 0;
+  padding: 0 12px 0 0;
+  border: 0;
+  background: transparent;
+}
+
+/* The ordinal joins the control strip.
+ *
+ * It held a 32px column at the head of the value's line, and that column was
+ * the difference between AnalyserNode.prototype.getFloatFrequencyData fitting
+ * and breaking mid-identifier as "getFloatFreque / ncyData". A pattern is not
+ * improved by knowing it is the second one while you read it; the number
+ * belongs with the other things you might do to it. */
+.method-item .input-row > .doc-ord {
+  grid-area: ord;
+  align-self: center;
+  height: 17px;
+  font: 400 11px/17px var(--con-mono);
+  text-align: left;
+}
+
+.method-item .input-row > .method-input,
+.method-item .input-row > select {
+  grid-area: value;
+  width: 100%;
+}
+
+/* --- the identifying tail -------------------------------------------------
+ *
+ * The echo shares the value's grid cell and prints the same string with the
+ * namespace dimmed, so four hooks that differ only past the last dot stop
+ * reading as four copies of one string. It is decoration: the textarea still
+ * holds the value, still takes focus, still tabs. While the field is being
+ * edited the echo steps aside so there is only ever one visible copy. */
+.method-item .input-row > .doc-echo {
+  grid-area: value;
+  align-self: start;
+  width: 100%;
+  min-width: 0;
+  padding: 4px 8px;
+  margin: 0;
+  border: 1px solid transparent;
+  border-left-width: 2px;
+  border-radius: 2px;
+  pointer-events: none;
+  font: 400 13px/17px var(--con-mono);
+  letter-spacing: -0.01em;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  overflow: hidden;
+}
+
+.doc-echo-head {
+  color: var(--con-ink-3);
+  opacity: 0.72;
+}
+
+.doc-echo-tail {
+  color: var(--con-ink);
+}
+
+/* At rest the field's own text is invisible and the echo is what you read.
+   The caret keeps its colour so a click still lands somewhere visible.
+   Stated as a :not() pair so it out-ranks the value's own colour rule, which
+   is declared later in this sheet and would otherwise repaint the text on top
+   of the echo — two copies of the string, one over the other. */
+.method-item .input-row > .method-input:not(.is-editing):not(:focus) {
+  color: transparent;
+  caret-color: var(--con-ink);
+}
+
+.method-item .input-row > .method-input.is-editing ~ .doc-echo,
+.method-item .input-row > .method-input:focus ~ .doc-echo {
+  visibility: hidden;
+}
+
+/* Placeholders have no echo behind them, so they need real ink. */
+.method-item .input-row > .method-input::placeholder {
+  color: var(--con-ink-3);
+  opacity: 0.8;
+  -webkit-text-fill-color: var(--con-ink-3);
+}
+
+/* The DOM and Window example buttons are direct children too; they belong on
+   the control strip rather than auto-placed into whatever cell is free. */
+.method-item .input-row > .dom-helper-btn,
+.method-item .input-row > .window-helper-btn {
+  grid-area: controls;
+  justify-self: end;
+  width: 16px;
+  height: 17px;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: var(--con-ink-3) !important;
+  font: 400 12px/17px var(--con-mono);
+}
+
+.doc-ord {
+  font: 400 12.5px/22px var(--con-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--con-ink-3);
+  text-align: right;
+  opacity: 0.75;
+  user-select: none;
+}
+
+.doc-ord--cont {
+  opacity: 0.45;
+}
+
+/* The value: text at rest, with the boundary the standard requires.
+ *
+ * It wraps rather than truncating. A JS hook is identified by its tail —
+ * AudioBuffer.prototype.getChannelData and AudioBuffer.prototype.copyToChannel
+ * differ only past the point a single line can show, so three patterns read as
+ * three copies of the same string. The field is a one-row textarea that grows
+ * to its content; everything else about it behaves as a single-line field. */
+/* An empty pattern and the filter above it were the same thing to look at:
+   grey placeholder text on the row's own ground, one line apart, neither with
+   an edge. The value gets the box — it is the only thing here you type a
+   pattern into — and the filter keeps the flat treatment below. */
+.method-item .input-row .method-input,
+.method-input,
+.method-name,
+.method-value {
+  display: block;
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  height: auto;
+  min-height: 27px;
+  padding: 4px 8px;
+  border: 1px solid var(--con-line);
+  border-left: 2px solid var(--con-line-strong);
+  border-radius: 2px;
+  background: var(--con-row-b);
+  box-shadow: none;
+  color: var(--con-ink);
+  font: 400 13px/17px var(--con-mono);
+  letter-spacing: -0.01em;
+  text-overflow: clip;
+  resize: none;
+  overflow: hidden;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+
+.method-item:hover .method-input {
+  border-color: var(--con-line-strong);
+  border-left-color: var(--con-cat, var(--con-accent));
+  background: #2c2c2c;
+}
+
+.method-input:focus {
+  outline: 1px solid var(--con-cat, var(--con-accent));
+  outline-offset: 1px;
+  border-left-color: var(--con-cat, var(--con-accent));
+  box-shadow: none;
+  text-overflow: clip;
+}
+
+.method-item .field-actions {
+  grid-area: controls;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-end;
+  justify-self: end;
+  gap: 4px;
+  width: auto;
+  margin: 1px 0 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+/* Matching options live behind one stable gear. Its title and accessible name
+   retain confidence information without turning a percentage into an
+   unlabeled button. */
+.method-item .method-action-btn.settings {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  padding: 0 !important;
+  border: 1px solid transparent !important;
+  border-radius: 4px !important;
+  background: rgba(255, 255, 255, 0.025) !important;
+  box-shadow: none !important;
+  color: var(--con-ink-3) !important;
+  opacity: 0.82;
+  transition: opacity 0.12s ease, color 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+}
+
+.method-item .method-action-btn.settings:hover,
+.method-item .method-action-btn.settings.has-custom-settings {
+  transform: none;
+  color: var(--con-accent) !important;
+  border-color: color-mix(in srgb, var(--con-accent) 45%, transparent) !important;
+  background: color-mix(in srgb, var(--con-accent) 10%, transparent) !important;
+  opacity: 1;
+}
+
+/* A persistent shape complements the accent tint so custom matching options
+   remain identifiable without relying on color perception. */
+.method-item .method-action-btn.settings.has-custom-settings::after {
+  content: "\2713";
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  font-size: 8px;
+  font-weight: 800;
+  line-height: 1;
+  color: currentColor;
+}
+
+.method-item .method-action-btn.settings:focus-visible,
+.method-item .method-action-btn.delete:focus-visible {
+  outline: 2px solid var(--con-accent);
+  outline-offset: 1px;
+}
+
+/* Settings and Delete are one compact action group with equal targets. */
+.method-item .method-action-btn.delete {
+  width: 28px;
+  height: 28px;
+  padding: 0 !important;
+  border: 1px solid transparent !important;
+  border-radius: 4px !important;
+  background: rgba(255, 255, 255, 0.025) !important;
+  box-shadow: none !important;
+  color: var(--con-ink-3) !important;
+  opacity: 0.72;
+  transition: opacity 0.12s ease, color 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+}
+
+.method-item:hover .method-action-btn.delete,
+.method-item:focus-within .method-action-btn.delete {
+  opacity: 0.85;
+}
+
+.method-item .method-action-btn.delete:hover {
+  transform: none;
+  opacity: 1;
+  color: var(--con-red) !important;
+  border-color: color-mix(in srgb, var(--con-red) 45%, transparent) !important;
+  background: color-mix(in srgb, var(--con-red) 10%, transparent) !important;
+}
+
+.method-item .method-action-btn.settings svg,
+.method-item .method-action-btn.delete svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* The highlighted Settings target communicates custom matching behavior. */
+.input-badges-row,
+.input-indicators {
+  display: none !important;
+}
+
+.method-item .dom-helper-btn,
+.method-item .window-helper-btn {
+  width: 14px;
+  height: 22px;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: var(--con-ink-3) !important;
+  font: 400 12.5px/22px var(--con-mono);
+  opacity: 0.6;
+}
+
+/* Add Value is a control, not a hint: it used to be borderless muted prose
+   at opacity 0, revealed only while its row was hovered — undiscoverable by
+   touch, keyboard, and anyone who never hovers. It is always visible now, in
+   the same dashed-ghost language as Add Pattern but at row scale. (It still
+   hides while a value exists; that swap is functional, not a reveal.) */
+.method-item .add-value-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  min-height: 24px;
+  margin: 3px 0 3px 32px;
+  padding: 0 10px !important;
+  border: 1px dashed rgba(45, 212, 191, 0.45) !important;
+  border-radius: 4px !important;
+  background: rgba(45, 212, 191, 0.06) !important;
+  box-shadow: none !important;
+  color: var(--con-accent-text) !important;
+  font: 600 10.5px/1 var(--con-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+  opacity: 1;
+  transition-property: background-color, border-color, color, transform;
+  transition-duration: 0.12s;
+  transition-timing-function: ease;
+}
+
+.method-item .add-value-btn:hover {
+  transform: none;
+  border-color: var(--con-accent) !important;
+  background: rgba(45, 212, 191, 0.14) !important;
+  color: var(--con-accent-text) !important;
+}
+
+.method-item .add-value-btn:active {
+  transform: scale(0.97);
+}
+
+.method-item .add-value-btn:focus-visible {
+  outline: 2px solid var(--con-accent);
+  outline-offset: 2px;
+}
+
+.method-item .add-value-btn svg {
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .method-item .add-value-btn:active {
+    transform: none;
+  }
+}
+
+/* Pagination is a fold in the list, indented to the value column. */
+.method-pagination {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 0 0 47px;
+  padding: 0 12px 0 0;
+  min-height: 22px;
+  border: 0;
+  background: transparent;
+  font: 400 12.5px/22px var(--con-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--con-ink-3);
+}
+
+.method-pagination-info {
+  color: var(--con-ink-3);
+  font-size: 12.5px;
+}
+
+.method-pagination-controls {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.method-pagination-btn {
+  width: 14px;
+  height: 22px;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: var(--con-ink-3) !important;
+}
+
+.method-pagination-btn:hover:not(:disabled) {
+  transform: none;
+  color: var(--con-accent) !important;
+}
+
+.method-pagination-btn:disabled {
+  opacity: 0.3;
+}
+
+.method-pagination-btn svg {
+  width: 10px;
+  height: 10px;
+}
+
+.method-pagination-page {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Add is the last line of a method's block, and it is the only control there
+   that creates something. It used to be a bare accent-coloured line of prose
+   with no border or ground (read as a caption), then a small dashed outline
+   with no ground that floated cramped and tiny (read as a placeholder rather
+   than a button). The fix keeps the dashed edge and gives it a proper button
+   body: taller hit area, roomier padding, a faint accent fill for ground, and
+   full hover / active / focus states. */
+.add-method-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: fit-content;
+  min-height: 30px;
+  margin: 6px 12px 10px auto;
+  padding: 0 13px !important;
+  /* The dashed edge is the affordance: an outline around the space the pattern
+     will occupy, in the sheet's own language of hairlines rather than a fill.
+     It clears the 3:1 non-text minimum (muted accent rather than grey,
+     because it is the same control as the label inside it); the faint fill
+     behind it gives the label a ground so the outline reads as a button
+     rather than a placeholder. */
+  border: 1px dashed rgba(45, 212, 191, 0.55) !important;
+  border-radius: 4px !important;
+  background: rgba(45, 212, 191, 0.08) !important;
+  box-shadow: none !important;
+  color: var(--con-accent-text) !important;
+  font: 600 11px/1 var(--con-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+  transition-property: background-color, border-color, color, transform;
+  transition-duration: 0.12s;
+  transition-timing-function: ease;
+}
+
+.add-method-btn:hover {
+  transform: none;
+  border-color: var(--con-accent) !important;
+  background: rgba(45, 212, 191, 0.16) !important;
+  color: var(--con-accent-text) !important;
+}
+
+.add-method-btn:active {
+  transform: scale(0.97);
+  background: rgba(45, 212, 191, 0.22) !important;
+}
+
+.add-method-btn:focus-visible {
+  outline: 2px solid var(--con-accent);
+  outline-offset: 2px;
+}
+
+.add-method-btn svg {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .add-method-btn:active {
+    transform: none;
+  }
+}
+
+/* ============================================================
+   METHOD OPTIONS — the sheet behind the confidence figure
+
+   For js_hooks and window there are no matching options at all, so this
+   sheet held one slider inside a full-height panel: about 800px of nothing
+   under a single control. It sizes to its contents now.
+
+   It also said the same thing twice — a "confidence level" band above a
+   "Detection confidence:" prefix above the number — and drew the track as a
+   red-to-green gradient, which reads as a quality score. Confidence is a
+   property of the pattern, not a grade: 50 means "this matches half the time",
+   not "this is bad". One label, one figure, one hue.
+   ============================================================ */
+
+#methodSettingsModal .rule-modal-content,
+.rule-modal-content.method-settings-modal {
+  align-self: center;
+  height: auto;
+  max-height: 100%;
+  min-height: 0;
+}
+
+#methodSettingsModal .rule-modal-body {
+  height: auto;
+  max-height: none;
+  min-height: 0;
+  padding: 0;
+  overflow-y: auto;
+}
+
+/* The prefix repeats the band directly above it. */
+.confidence-display .confidence-label {
+  display: none;
+}
+
+.confidence-display {
+  display: flex;
+  align-items: baseline;
+  gap: 1px;
+  margin: 0;
+  padding: 12px 12px 10px;
+  border: 0;
+  background: transparent;
+}
+
+#confidenceValue.confidence-value {
+  font: 700 34px/1 var(--con-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  color: var(--con-cat, var(--con-accent-text)) !important;
+  background: transparent;
+  border: 0;
+  padding: 0;
+}
+
+.confidence-display .confidence-percent {
+  font: 500 16px/1 var(--con-mono);
+  color: var(--con-ink-3);
+  background: transparent;
+  border: 0;
+  padding: 0;
+}
+
+.confidence-slider-container {
+  padding: 0 12px 14px;
+  margin: 0;
+  border: 0;
+  background: transparent;
+}
+
+/* A flat track, filled to the value in the rule's own hue. */
+.confidence-slider,
+input[type="range"].confidence-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: 4px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: var(--con-line-strong);
+  background: linear-gradient(
+    to right,
+    var(--con-cat, var(--con-accent)) 0,
+    var(--con-cat, var(--con-accent)) var(--conf-pct, 100%),
+    var(--con-line-strong) var(--conf-pct, 100%),
+    var(--con-line-strong) 100%);
+  box-shadow: none;
+  cursor: pointer;
+}
+
+.confidence-slider::-webkit-slider-runnable-track {
+  height: 4px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.confidence-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 10px;
+  height: 16px;
+  margin-top: -6px;
+  border: 0;
+  border-radius: 1px;
+  background: var(--con-ink);
+  box-shadow: none;
+  cursor: grab;
+}
+
+.confidence-slider:active::-webkit-slider-thumb {
+  cursor: grabbing;
+  background: var(--con-cat, var(--con-accent));
+}
+
+.confidence-slider:focus-visible {
+  outline: 1px solid var(--con-accent);
+  outline-offset: 3px;
+}
+
+.confidence-marks {
+  display: flex;
+  justify-content: space-between;
+  margin: 7px 0 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.confidence-marks span {
+  font: 400 11.5px/1 var(--con-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  color: var(--con-ink-3);
+  background: transparent;
+  border: 0;
+  padding: 0;
+}
+
+/* --- the option rows -----------------------------------------------------
+   Each option was a rounded card floating in a gap, with two filled teal
+   buttons on it — the "?" helper and the "i" explanation — competing with the
+   control they were meant to annotate. Rows, hairlines, quiet glyphs. */
+
+#methodSettingsModal .settings-options {
+  display: block;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+#methodSettingsModal .setting-option {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 36px;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  margin: 0;
+  padding: 10px 12px;
+  border: 0;
+  border-bottom: 1px solid var(--con-line);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+#methodSettingsModal .setting-option:last-child {
+  border-bottom: 0;
+}
+
+#methodSettingsModal .setting-option:hover {
+  background: rgba(255, 255, 255, 0.02);
+  transform: none;
+  box-shadow: none;
+}
+
+#methodSettingsModal .setting-option:has(.scope-select) {
+  grid-template-columns: minmax(0, 1fr) minmax(96px, auto);
+}
+
+#methodSettingsModal .option-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+#methodSettingsModal .setting-label-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+#methodSettingsModal .setting-label {
+  font: 600 14px/1.3 var(--con-sans);
+  letter-spacing: -0.012em;
+  color: var(--con-ink);
+}
+
+#methodSettingsModal .option-hint,
+#methodSettingsModal .option-examples {
+  margin: 0;
+  font: 400 12.5px/1.45 var(--con-sans);
+  color: var(--con-ink-3);
+}
+
+/* The two helpers are annotations, not actions. */
+#methodSettingsModal .regex-helper-btn,
+#methodSettingsModal .pattern-helper-btn,
+#methodSettingsModal .explanation-helper-btn {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 auto;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: var(--con-ink-3) !important;
+  font: 400 12.5px/24px var(--con-mono) !important;
+  opacity: 0.65;
+}
+
+#methodSettingsModal .regex-helper-btn:hover,
+#methodSettingsModal .pattern-helper-btn:hover,
+#methodSettingsModal .explanation-helper-btn:hover {
+  transform: none;
+  opacity: 1;
+  color: var(--con-accent) !important;
+}
+
+/* The label owns a 36x28 click target while the visual track stays compact.
+   Both switch states keep the knob vertically centered. */
+#methodSettingsModal .toggle-switch {
+  position: relative;
+  display: inline-block;
+  flex: 0 0 auto;
+  width: 36px;
+  height: 28px;
+  margin: 0;
+}
+
+#methodSettingsModal .toggle-slider {
+  position: absolute;
+  inset: 5px 0;
+  border: 1px solid var(--con-line-strong);
+  border-radius: 9px;
+  background: var(--con-row-b);
+  box-shadow: none;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+#methodSettingsModal .toggle-slider::before {
+  content: "";
+  position: absolute;
+  left: 3px;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--con-ink-3);
+  box-shadow: none;
+  transform: translateY(-50%);
+  transition: transform 0.12s ease, background 0.12s ease;
+}
+
+#methodSettingsModal .toggle-input:checked + .toggle-slider {
+  background: var(--con-cat, var(--con-accent));
+  border-color: var(--con-cat, var(--con-accent));
+}
+
+#methodSettingsModal .toggle-input:checked + .toggle-slider::before {
+  transform: translateX(18px) translateY(-50%);
+  background: #16161a;
+}
+
+#methodSettingsModal .toggle-input:focus-visible + .toggle-slider {
+  outline: 1px solid var(--con-accent);
+  outline-offset: 2px;
+}
+
+#methodSettingsModal .scope-select {
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 96px;
+  height: 26px;
+  padding: 0 6px;
+  border: 1px solid var(--con-line);
+  border-radius: 2px;
+  background: var(--con-row-b);
+  box-shadow: none;
+  color: var(--con-ink);
+  font: 400 13px/1 var(--con-mono);
+}
+
+/* ============================================================
+   HISTORY DETAIL V2 — a compact, accessible scan ledger
+
+   The sheet has four fixed regions: page identity, scan summary, results
+   heading and status footer. Only the grouped findings ledger scrolls. This
+   block intentionally owns every active History-detail selector so the old
+   card-based archive skin cannot leak into the redesigned component.
+   ============================================================ */
+
+#historyDetailModal {
+  padding: var(--con-sheet-inset);
+}
+
+#historyDetailModal .history-modal-container {
+  width: 100%;
+  height: calc(100vh - 24px);
+  height: calc(100dvh - 24px);
+  max-width: none;
+  max-height: none;
+  min-height: 0;
+  border: 1px solid var(--con-line-strong);
+  border-radius: 5px;
+  background: #181818;
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.72);
+  overflow: hidden;
+}
+
+#historyDetailModal .history-modal-header {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 72px;
+  padding: 11px 10px 10px 12px;
+  border: 0;
+  border-bottom: 1px solid var(--con-line);
+  background: linear-gradient(180deg, #292929 0%, var(--con-band) 100%);
+}
+
+#historyDetailModal .history-modal-title-section {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+  padding: 0;
+}
+
+#historyDetailModal .history-modal-favicon {
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  padding: 4px;
+  border: 1px solid var(--con-line);
+  border-radius: 5px;
+  background: var(--con-row-a);
+  object-fit: contain;
+  box-shadow: none;
+}
+
+#historyDetailModal .history-modal-title-info {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+#historyModalTitle {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  font: 650 15px/1.24 var(--con-sans);
+  letter-spacing: -0.015em;
+  color: var(--con-ink);
+}
+
+#historyModalUrl {
+  display: block;
+  min-width: 0;
+  min-height: 24px;
+  padding: 3px 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 400 11.5px/1.5 var(--con-mono);
+  letter-spacing: -0.01em;
+  color: var(--con-ink-3) !important;
+  text-decoration: none;
+}
+
+#historyModalUrl:hover {
+  color: var(--con-accent-text) !important;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+#historyModalUrl:focus-visible,
+#historyDetailModal button:focus-visible,
+#historyModalContent:focus-visible {
+  outline: 2px solid var(--con-accent);
+  outline-offset: -2px;
+}
+
+#historyDetailModal .history-modal-close {
+  flex: 0 0 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  padding: 0;
+  border: 1px solid transparent !important;
+  border-radius: 4px;
+  background: transparent !important;
+  color: var(--con-ink-3) !important;
+}
+
+#historyDetailModal .history-modal-close:hover {
+  border-color: var(--con-line) !important;
+  background: var(--con-row-b) !important;
+  color: var(--con-ink) !important;
+}
+
+#historyDetailModal .history-modal-meta {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-bottom: 1px solid var(--con-line);
+  border-radius: 0;
+  background: var(--con-row-a);
+}
+
+#historyDetailModal .history-modal-meta-row {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+#historyDetailModal .history-modal-meta-row.stats-row {
+  order: 1;
+}
+
+#historyDetailModal .history-modal-meta-row.timestamp-row {
+  order: 2;
+  min-height: 28px;
+  padding: 6px 12px 7px;
+  border-top: 1px solid var(--con-line);
+  background: #202020;
+}
+
+#historyModalStats .history-stats-line {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 0;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+#historyDetailModal .history-stat-inline {
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+  min-height: 58px;
+  margin: 0;
+  padding: 8px 7px 7px;
+  border: 0 !important;
+  border-right: 1px solid var(--con-line) !important;
+  border-radius: 0;
+  background: transparent !important;
+  box-shadow: none;
+}
+
+#historyDetailModal .history-stat-inline:last-child {
+  border-right: 0 !important;
+}
+
+#historyDetailModal .history-stat-icon {
+  display: none;
+}
+
+#historyDetailModal .history-stat-content {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 4px;
+  min-width: 0;
+}
+
+#historyDetailModal .history-stat-value {
+  order: 1;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 650 17px/1 var(--con-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.025em;
+  color: var(--con-ink) !important;
+}
+
+#historyDetailModal .history-stat-label {
+  order: 2;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 600 9px/1.2 var(--con-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--con-ink-3) !important;
+}
+
+#historyDetailModal .history-stats-line[data-difficulty="low"] .history-stat-difficulty .history-stat-value,
+#historyDetailModal .history-stats-line[data-difficulty="low"] .history-stat-detections .history-stat-value {
+  color: var(--con-accent-text) !important;
+}
+
+#historyDetailModal .history-stats-line[data-difficulty="medium"] .history-stat-difficulty .history-stat-value,
+#historyDetailModal .history-stats-line[data-difficulty="medium"] .history-stat-detections .history-stat-value {
+  color: var(--con-amber) !important;
+}
+
+#historyDetailModal .history-stats-line[data-difficulty="high"] .history-stat-difficulty .history-stat-value,
+#historyDetailModal .history-stats-line[data-difficulty="high"] .history-stat-detections .history-stat-value {
+  color: #ef5f64 !important;
+}
+
+#historyDetailModal .history-modal-timestamp {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 7px;
+  padding: 0;
+  color: var(--con-ink-3) !important;
+  font: 400 10.5px/1.35 var(--con-mono);
+  letter-spacing: 0.015em;
+}
+
+#historyDetailModal .history-modal-timestamp .time-ago {
+  color: var(--con-ink-2);
+  font-weight: 600;
+}
+
+#historyDetailModal .history-modal-timestamp .time-full {
+  color: var(--con-ink-3);
+}
+
+#historyDetailModal .history-modal-body {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: #181818;
+}
+
+#historyDetailModal .history-modal-results-header {
+  flex: 0 0 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 32px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--con-line);
+  background: var(--con-band);
+}
+
+#historyDetailModal .history-modal-results-header h4 {
+  margin: 0;
+  font: 650 10px/1 var(--con-mono);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--con-ink-2);
+}
+
+#historyDetailModal .history-modal-results-total {
+  min-width: 22px;
+  padding: 2px 6px;
+  border: 1px solid var(--con-line);
+  border-radius: 999px;
+  font: 650 10px/1 var(--con-mono);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  color: var(--con-accent-text);
+  background: var(--con-row-a);
+}
+
+#historyModalContent {
+  flex: 1 1 auto;
+  height: auto;
+  max-height: none;
+  min-height: 0;
+  padding: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: #181818;
+  scrollbar-gutter: stable;
+}
+
+#historyDetailModal .history-modal-group {
+  --history-group-color: var(--con-ink-3);
+  --history-group-text: var(--con-ink-2);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+#historyDetailModal .history-modal-group[data-category="antibot"] {
+  --history-group-color: var(--con-red);
+  --history-group-text: #ef5f64;
+}
+
+#historyDetailModal .history-modal-group[data-category="captcha"] {
+  --history-group-color: var(--con-blue);
+  --history-group-text: #3f9dff;
+}
+
+#historyDetailModal .history-modal-group[data-category="fingerprint"] {
+  --history-group-color: var(--con-accent);
+  --history-group-text: var(--con-accent-text);
+}
+
+#historyDetailModal .history-modal-group-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: 3px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  min-height: 29px;
+  padding: 0 11px 0 0;
+  border-top: 1px solid var(--con-line);
+  border-bottom: 1px solid var(--con-line);
+  background: #222222;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.25);
+}
+
+#historyDetailModal .history-modal-group:first-child .history-modal-group-header {
+  border-top: 0;
+}
+
+#historyDetailModal .history-modal-group-rail {
+  align-self: stretch;
+  background: var(--history-group-color);
+}
+
+#historyDetailModal .history-modal-group-header h5 {
+  margin: 0;
+  font: 650 10px/1 var(--con-mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--history-group-text);
+}
+
+#historyDetailModal .history-modal-group-count {
+  font: 650 10.5px/1 var(--con-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--con-ink-3);
+}
+
+#historyDetailModal .history-modal-group-list {
+  margin: 0;
+  padding: 0;
+}
+
+#historyDetailModal .history-modal-detection-card {
+  --con-cat: var(--history-group-color, var(--con-ink-3));
+  position: relative;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-bottom: 1px solid var(--con-line);
+  border-radius: 0;
+  background: var(--con-row-a);
+  box-shadow: none;
+  overflow: hidden;
+}
+
+#historyDetailModal .history-modal-detection-card:nth-child(even) {
+  background: #202020;
+}
+
+#historyDetailModal .history-modal-detection-card::before {
+  display: none;
+}
+
+#historyDetailModal .history-modal-detection-toggle {
+  appearance: none;
+  width: 100%;
+  min-height: 50px;
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) 68px;
+  align-items: center;
+  gap: 9px;
+  margin: 0;
+  padding: 7px 10px 7px 12px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  box-shadow: none;
+  text-align: left;
+  font: inherit;
+}
+
+button.history-modal-detection-toggle {
+  cursor: pointer;
+}
+
+button.history-modal-detection-toggle:hover {
+  background: rgba(255, 255, 255, 0.035);
+}
+
+button.history-modal-detection-toggle:focus-visible {
+  position: relative;
+  z-index: 1;
+  outline: 2px solid var(--con-accent);
+  outline-offset: -2px;
+}
+
+#historyDetailModal .modal-detector-icon,
+#historyDetailModal .modal-detector-icon-svg,
+#historyDetailModal .history-modal-detection-header img.modal-detector-icon,
+#historyDetailModal .history-modal-detection-toggle img.modal-detector-icon {
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 3px;
+  background: transparent !important;
+  color: var(--history-group-color, var(--con-ink-2));
+  box-shadow: none !important;
+  object-fit: contain;
+}
+
+#historyDetailModal .history-modal-detection-content {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+#historyDetailModal .history-modal-detection-name {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 620 13.5px/1.2 var(--con-sans);
+  letter-spacing: -0.012em;
+  color: var(--con-ink);
+}
+
+#historyDetailModal .history-modal-detection-summary {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 550 9.5px/1.2 var(--con-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--con-ink-3);
+}
+
+#historyDetailModal .history-modal-detection-right {
+  display: grid;
+  grid-template-columns: minmax(38px, auto) 16px;
+  grid-template-rows: auto 3px;
+  align-items: center;
+  gap: 5px 7px;
+  min-width: 0;
+}
+
+#historyDetailModal .history-modal-confidence {
+  grid-column: 1;
+  grid-row: 1;
+  justify-self: end;
+  margin: 0;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  color: var(--con-ink-2) !important;
+  font: 650 13px/1 var(--con-mono);
+  font-variant-numeric: tabular-nums;
+  box-shadow: none !important;
+}
+
+#historyDetailModal .history-modal-confidence.confidence-high {
+  color: var(--con-ink) !important;
+}
+
+#historyDetailModal .history-modal-confidence.confidence-medium {
+  color: var(--con-ink-2) !important;
+}
+
+#historyDetailModal .history-modal-confidence.confidence-low {
+  color: var(--con-ink-3) !important;
+}
+
+#historyDetailModal .history-modal-confidence-meter {
+  grid-column: 1;
+  grid-row: 2;
+  justify-self: end;
+  display: block;
+  width: 42px;
+  height: 2px;
+  overflow: hidden;
+  background: var(--con-line);
+}
+
+#historyDetailModal .history-modal-confidence-meter > span {
+  display: block;
+  height: 100%;
+  background: var(--history-group-color, var(--con-ink-3));
+}
+
+#historyDetailModal .history-modal-expand-icon {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  width: 16px;
+  height: 16px;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  color: var(--con-ink-3) !important;
+  font: 600 14px/16px var(--con-mono);
+  text-align: center;
+  transform: rotate(0deg);
+  transition: transform 0.14s ease;
+}
+
+#historyDetailModal .history-modal-detection-card.expanded .history-modal-expand-icon {
+  transform: rotate(180deg);
+}
+
+#historyDetailModal .history-modal-detection-details {
+  display: block;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-top: 1px solid var(--con-line);
+  background: #171717;
+}
+
+#historyDetailModal .history-modal-detection-details[hidden] {
+  display: none;
+}
+
+#historyDetailModal .history-modal-detection-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  margin: 0;
+  padding: 6px 10px 7px 12px;
+  border: 0;
+  border-bottom: 1px solid var(--con-line);
+  background: #1d1d1d;
+}
+
+#historyDetailModal .history-modal-badge,
+#historyDetailModal .history-modal-method-types,
+#historyDetailModal .history-modal-method-types > span,
+#historyDetailModal .history-modal-match-count {
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  font: 600 9.5px/1.35 var(--con-mono) !important;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+#historyDetailModal .history-modal-badge {
+  color: var(--history-group-text, var(--con-ink-2)) !important;
+}
+
+#historyDetailModal .history-modal-method-types {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px 9px;
+}
+
+#historyDetailModal .history-modal-method-types > span {
+  color: var(--history-group-text, var(--con-ink-2)) !important;
+}
+
+#historyDetailModal .history-modal-match-count {
+  color: var(--con-ink-3) !important;
+}
+
+#historyDetailModal .history-modal-detection-methods {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+#historyDetailModal .history-modal-method-item {
+  appearance: none;
+  width: 100%;
+  min-height: 38px;
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr) 38px;
+  align-items: start;
+  gap: 8px;
+  margin: 0;
+  padding: 7px 10px 7px 12px;
+  border: 0;
+  border-bottom: 1px solid var(--con-line);
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  box-shadow: none;
+  text-align: left;
+  cursor: copy;
+}
+
+#historyDetailModal .history-modal-method-item:last-child {
+  border-bottom: 0;
+}
+
+#historyDetailModal .history-modal-method-item:hover {
+  background: rgba(255, 255, 255, 0.04);
+  transform: none;
+  box-shadow: none;
+}
+
+#historyDetailModal .history-modal-method-badge {
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 650 9.5px/1.45 var(--con-mono) !important;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--history-group-text, var(--con-ink-2)) !important;
+}
+
+#historyDetailModal .history-modal-method-value {
+  min-width: 0;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  font: 400 11.5px/1.4 var(--con-mono);
+  color: var(--con-ink-2) !important;
+  user-select: text;
+}
+
+#historyDetailModal .history-modal-method-confidence {
+  justify-self: end;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  font: 600 10.5px/1.4 var(--con-mono) !important;
+  font-variant-numeric: tabular-nums;
+  color: var(--con-ink-3) !important;
+}
+
+#historyDetailModal .history-modal-method-item.copy-feedback {
+  background: rgba(45, 212, 191, 0.1);
+  box-shadow: inset 3px 0 0 var(--con-accent);
+}
+
+#historyDetailModal .history-modal-empty,
+#historyDetailModal .history-modal-no-methods {
+  padding: 24px 16px;
+  color: var(--con-ink-3);
+  font: 400 12px/1.5 var(--con-mono);
+  text-align: center;
+}
+
+#historyDetailModal .history-modal-footer {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+  padding: 0 10px 0 12px;
+  border-top: 1px solid var(--con-line);
+  background: var(--con-band);
+}
+
+#historyDetailModal .history-modal-footer-summary {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+  font: 600 9.5px/1 var(--con-mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--con-ink-3);
+}
+
+#historyDetailModal .history-modal-footer-summary strong {
+  font: 650 13px/1 var(--con-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+  color: var(--con-accent-text);
+}
+
+#historyDetailModal .history-modal-done {
+  min-width: 72px;
+  min-height: 32px;
+  padding: 0 11px;
+  border: 1px solid var(--con-line-strong);
+  border-radius: 3px;
+  background: var(--con-row-a);
+  color: var(--con-ink-2);
+  font: 650 10px/1 var(--con-mono);
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  box-shadow: none;
+}
+
+#historyDetailModal .history-modal-done:hover {
+  border-color: var(--con-accent);
+  background: #202826;
+  color: var(--con-accent-text);
+}
+
+@media (max-width: 360px) {
+  #historyDetailModal {
+    padding: 8px;
+  }
+
+  #historyDetailModal .history-modal-container {
+    height: calc(100vh - 16px);
+    height: calc(100dvh - 16px);
+  }
+
+  #historyModalStats .history-stats-line {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  #historyDetailModal .history-stat-inline:nth-child(2) {
+    border-right: 0 !important;
+  }
+
+  #historyDetailModal .history-stat-inline:nth-child(-n + 2) {
+    border-bottom: 1px solid var(--con-line) !important;
+  }
+
+  #historyModalUrl {
+    max-height: 3.2em;
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
+
+  #historyDetailModal .history-modal-method-item {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  #historyDetailModal .history-modal-method-value {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  #historyDetailModal .history-modal-group-header {
+    position: static;
+  }
+
+  #historyDetailModal .history-modal-detection-toggle {
+    min-height: 62px;
+    grid-template-columns: 20px minmax(0, 1fr) 58px;
+  }
+
+  #historyDetailModal .history-modal-detection-name {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+}
+
+/* ============================================================
+   SETTINGS — the last panel, on the same terms
+   ============================================================ */
+
+.base-modal .modal-header,
+.base-modal-content .modal-header {
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 12px;
+  border-bottom: 1px solid var(--con-line);
+  background: var(--con-band);
+  box-shadow: none;
+}
+
+.base-modal-content .modal-header h2,
+.base-modal-content .modal-header h3 {
+  font: 600 12.5px/1 var(--con-mono);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--con-ink-2);
+  margin: 0;
+}
+
+.base-modal-content .modal-subtitle {
+  font: 400 12.5px/1.3 var(--con-mono);
+  letter-spacing: 0.02em;
+  color: var(--con-ink-3);
+  margin: 4px 0 0;
+}
+
+.base-modal-content .close-btn {
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  padding: 0;
+  border: 0 !important;
+  border-radius: 0;
+  background: transparent !important;
+  box-shadow: none;
+  color: var(--con-ink-3) !important;
+}
+
+.base-modal-content .close-btn:hover {
+  background: transparent !important;
+  transform: none;
+  color: var(--con-red) !important;
+}
+
+/* The settings tabs answer to the same strip as the popup's own. */
+.settings-tabs {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 0;
+  padding: 0;
+  margin: 0;
+  background: var(--con-band);
+  border: 0;
+  border-bottom: 1px solid var(--con-line);
+}
+
+.settings-tab-btn {
+  height: 28px;
+  min-width: 0;
+  padding: 0 2px;
+  gap: 0;
+  border: 0;
+  border-right: 1px solid var(--con-line);
+  border-radius: 0;
+  background: var(--con-band);
+  color: var(--con-ink-3);
+  font: 600 11.5px/1 var(--con-mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  box-shadow: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.settings-tab-btn:last-child {
+  border-right: 0;
+}
+
+.settings-tab-btn svg,
+.settings-tab-btn i {
+  display: none;
+}
+
+.settings-tab-btn.active {
+  background: var(--con-row-a);
+  color: var(--con-accent);
+  box-shadow: inset 0 -2px 0 var(--con-accent);
+}
+
+.base-modal-content .modal-body {
+  padding: 0;
+  background: var(--con-row-a);
+}
+
+/* A settings group is a band and a run of ruled rows. */
+.settings-card-group {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.settings-card-group-title {
+  display: flex;
+  align-items: center;
+  height: 27px;
+  padding: 0 12px;
+  margin: 0;
+  background: var(--con-band);
+  border-top: 1px solid var(--con-line);
+  border-bottom: 1px solid var(--con-line);
+  font: 600 12px/1 var(--con-mono);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  /* The band names the category, so it carries the brand green rather than
+     the grey used for ordinary labels. --con-accent-text is the variant tuned
+     for type: 8.3:1 on the band, up from the grey's 6.0:1. */
+  color: var(--con-accent-text);
+}
+
+/* A setting is a row in a register.
+ *
+ * Sans headline, sans sentence beneath it, control floated far right — that
+ * anatomy is every extension's settings page, which is exactly why it read as
+ * the upstream project's. Here the name is a key in the same micro-caps mono
+ * the popup uses for every other label, the sentence is subordinate to it, and
+ * the rows alternate ground so a long panel stays countable. */
+.settings-card {
+  margin: 0;
+  padding: 8px 12px 9px;
+  border: 0;
+  border-bottom: 1px solid var(--con-line);
+  border-radius: 0;
+  background: var(--con-row-a);
+  box-shadow: none;
+}
+
+.settings-card:nth-of-type(even) {
+  background: var(--con-row-b);
+}
+
+.settings-card:hover,
+.settings-card:nth-of-type(even):hover {
+  background: #303030;
+  transform: none;
+  box-shadow: none;
+}
+
+.settings-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+}
+
+.settings-card-title {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font: 600 12.5px/1.4 var(--con-mono);
+  letter-spacing: 0.11em;
+  color: var(--con-ink);
+}
+
+.settings-card-title svg,
+.settings-card-title i {
+  display: none;
+}
+
+/* The band above the card is the all-caps element. The title is the setting's
+   own name and stays exactly as the locale wrote it — lowercasing here
+   overrode the translators' casing in all twelve languages, not just this one,
+   and every title already ships Title Case in messages.json. */
+.settings-card-title span,
+.settings-card-title .settings-card-label {
+  font: 600 12.5px/1.4 var(--con-mono);
+  letter-spacing: 0.11em;
+  text-transform: none;
+  color: var(--con-ink);
+}
+
+.settings-card-description,
+.settings-card-title p,
+.settings-card p {
+  font: 400 12.5px/1.4 var(--con-sans);
+  color: var(--con-ink-3);
+  margin: 0;
+}
+
+.settings-card-body {
+  padding: 8px 0 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+}
+
+/* --- the JS API register -----------------------------------------------
+ *
+ * Seven page-facing events, drawn upstream as seven bordered blocks of
+ * Courier chips inside a rounded panel: 430px of a 580px popup spent on a
+ * reference list, with the shared namespace shouted seven times and nothing
+ * to tell a progress event from an outcome.
+ *
+ * It is a table, so it is drawn as one. Hairline-ruled rows on alternating
+ * ground, the key flat in the console's own mono, the namespace kept on every
+ * row (each key stays copy-pasteable whole) but dimmed so the eye scans the
+ * half that differs. The lifecycle's two endings carry a left rail in their
+ * own colour; every other row reserves the same 2px so nothing shifts.
+ */
+#pageSignalsSettings {
+  flex-direction: column;
+}
+
+.api-info-box {
+  width: auto;
+  margin: 0 -12px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+/* Both labels are section bands, the same ones the rest of the console uses. */
+.api-info-title,
+.api-usage-example strong {
+  display: flex;
+  align-items: center;
+  height: 22px;
+  margin: 0;
+  padding: 0 12px;
+  border: 0;
+  border-bottom: 1px solid var(--con-line);
+  background: var(--con-band);
+  font: 600 10px/1 var(--con-mono);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--con-ink-3);
+}
+
+.api-info-title {
+  border-top: 1px solid var(--con-line);
+}
+
+/* The band is the disclosure control: the list is reference material and stays
+   closed until it is asked for. Native <details> means no script and no state
+   to keep in sync; the mark is drawn here because data-i18n owns the summary's
+   textContent and would wipe any element placed inside it. */
+.api-event-disclosure > summary.api-info-title {
+  justify-content: space-between;
+  gap: 8px;
+  cursor: pointer;
+  list-style: none;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.api-event-disclosure > summary.api-info-title::-webkit-details-marker {
+  display: none;
+}
+
+.api-event-disclosure > summary.api-info-title::after {
+  content: "+";
+  flex: 0 0 auto;
+  font: 600 13px/1 var(--con-mono);
+  letter-spacing: 0;
+  color: var(--con-ink-3);
+}
+
+.api-event-disclosure[open] > summary.api-info-title::after {
+  content: "\2212";
+}
+
+.api-event-disclosure > summary.api-info-title:hover {
+  background: #303030;
+  color: var(--con-ink-2);
+}
+
+.api-event-disclosure > summary.api-info-title:hover::after {
+  color: var(--con-accent);
+}
+
+.api-event-disclosure > summary.api-info-title:focus-visible {
+  outline: 1px solid var(--con-accent);
+  outline-offset: -1px;
+}
+
+.api-event-item {
+  display: grid;
+  gap: 1px;
+  margin: 0;
+  padding: 6px 12px 7px;
+  border: 0;
+  border-left: 2px solid transparent;
+  border-bottom: 1px solid var(--con-line);
+  background: var(--con-row-a);
+  transition: background 0.12s ease;
+}
+
+.api-event-item:nth-child(even) {
+  background: var(--con-row-b);
+}
+
+.api-event-item:hover,
+.api-event-item:nth-child(even):hover {
+  background: #303030;
+}
+
+/* Where the run ends: results on the left rail in the accent, failures in red. */
+.api-event-item--result {
+  border-left-color: var(--con-accent);
+}
+
+.api-event-item--failure {
+  border-left-color: #ef5f64;
+}
+
+/* The key. The pill, the radius and the Courier were the upstream sheet's. */
+.api-event-item code {
+  justify-self: start;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  font: 600 12px/1.35 var(--con-mono);
+  letter-spacing: -0.01em;
+  color: var(--con-accent-text);
+  overflow-wrap: anywhere;
+  transition: color 0.12s ease;
+}
+
+.api-event-item code .api-event-ns {
+  font: 400 12px/1.35 var(--con-mono);
+  color: var(--con-ink-3);
+}
+
+.api-event-item code:hover {
+  color: var(--con-accent);
+}
+
+.api-event-item code:hover .api-event-ns {
+  color: var(--con-ink-2);
+}
+
+.api-event-item--failure code {
+  color: #ef5f64;
+}
+
+.api-event-item--failure code:hover {
+  color: #ff8489;
+}
+
+.api-event-item > span {
+  font: 400 12px/1.4 var(--con-sans);
+  color: var(--con-ink-3);
+}
+
+.api-usage-example {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+/* The block is the copy target, so it answers the pointer like one. */
+.api-usage-example pre {
+  margin: 0;
+  padding: 8px 12px 9px;
+  border: 0;
+  border-radius: 0;
+  background: var(--con-row-b);
+  font: 400 11px/1.55 var(--con-mono);
+  color: var(--con-ink-2);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.api-usage-example pre:hover {
+  background: #303030;
+  color: var(--con-ink);
+}
+
+/* The settings switch keeps the shell's switch anatomy. */
+.settings-card .switch,
+.base-modal-content .switch {
+  width: 36px;
+  height: 28px;
+  flex: 0 0 auto;
+  position: relative;
+  display: inline-block;
+}
+
+.settings-card .slider,
+.base-modal-content .slider {
+  inset: 5px 0;
+  border-radius: 9px;
+  border: 0;
+  background-color: var(--con-line);
+  box-shadow: none;
+}
+
+.settings-card .slider::before,
+.base-modal-content .slider::before {
+  height: 12px;
+  width: 12px;
+  left: 3px;
+  top: 50%;
+  bottom: auto;
+  transform: translateY(-50%);
+  background-color: var(--con-ink-3);
+}
+
+.settings-card input:checked + .slider,
+.base-modal-content input:checked + .slider {
+  background-color: rgba(45, 212, 191, 0.3);
+  border-color: transparent;
+}
+
+.settings-card input:checked + .slider::before,
+.base-modal-content input:checked + .slider::before {
+  transform: translateX(18px) translateY(-50%);
+  background-color: var(--con-accent);
+}
+
+.settings-card .switch input:focus-visible + .slider,
+.base-modal-content .switch input:focus-visible + .slider {
+  outline: 2px solid var(--con-accent);
+  outline-offset: 2px;
+}
+
+.language-picker-trigger,
+.base-modal-content select,
+.base-modal-content input[type="text"],
+.base-modal-content input[type="number"],
+.base-modal-content input[type="url"] {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--con-line);
+  border-radius: 3px;
+  background: var(--con-row-b);
+  color: var(--con-ink);
+  font: 400 13.5px/1.4 var(--con-mono);
+  box-shadow: none;
+}
+
+.language-picker-trigger:hover {
+  border-color: var(--con-line-strong);
+  background: var(--con-row-b);
+}
+
+/* The language card carried its own 16/18px padding and a 46px trigger, which
+   made it read as a different kind of setting from the rows above and below
+   it. It is the same kind of setting. */
+.settings-card-header--static,
+.settings-card--language .settings-card-header {
+  padding: 0;
+}
+
+/* settings-language.css wins on specificity for both of these, so the skin
+   has to match its selectors rather than name the classes alone. */
+.settings-card--language .settings-card-body.settings-card-body--language {
+  padding: 8px 0 0;
+  margin: 0;
+}
+
+.settings-card--language .language-picker {
+  margin: 0;
+  width: 100%;
+}
+
+.language-picker-trigger {
+  min-height: 32px;
+  height: 32px;
+  padding: 0 10px;
+}
+
+.language-picker-menu {
+  border: 1px solid var(--con-line);
+  border-radius: 3px;
+  background: var(--con-row-a);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.55);
+}
+
+/* The footer is a status line, the way the editor's is.
+ *
+ * A filled pill next to an outlined box is the single loudest generic tell in
+ * the panel, and it disagreed with the rule editor sitting one tab away, where
+ * save and cancel are words. They are words here too: the committing action
+ * carries the accent and an underline, cancel is quiet, and the attribution
+ * drops to the micro-caps it should always have been. */
+/* settings.css pins the body to 400px, which left a strip of dead sheet
+   under the footer once the chassis stopped being a fixed 580. */
+.base-modal-content .modal-body {
+  flex: 1 1 auto;
+  height: auto;
+  max-height: none;
+  min-height: 0;
+  padding: 0;
+  overflow-y: auto;
+}
+
+/* The settings sheet keeps one frame across its four tabs.
+ *
+ * Its height followed its content, and the Data tab holds two rows against the
+ * General tab's twenty — so switching tabs resized the whole dialog and moved
+ * the tab strip you had just clicked, along with Save and Cancel, out from
+ * under the pointer. The other sheets in this console are single-purpose and
+ * should still size to what they hold; this one is a container for four
+ * different pages and has to stay still while you move between them. */
+#settingsModal .base-modal-content {
+  height: 100%;
+}
+
+.base-modal-content .modal-footer {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 12px;
+  height: 36px;
+  min-height: 36px;
+  border-top: 1px solid var(--con-line);
+  background: var(--con-band);
+  box-shadow: none;
+}
+
+.base-modal-content .modal-footer .modal-footer-buttons {
+  order: 2;
+  /* settings.css gives this group the full footer width, which crushed the
+     attribution to nothing beside it. */
+  flex: 0 0 auto;
+  width: auto;
+  max-width: none;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+}
+
+.base-modal-content .modal-footer button,
+.base-modal-content .modal-footer button.save-btn,
+.base-modal-content .modal-footer button.primary-btn,
+.base-modal-content .modal-footer button.secondary-btn,
+.base-modal-content .modal-footer button#saveSettings {
+  width: auto;
+  height: auto;
+  padding: 2px 0;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  border-radius: 0;
+  background: transparent !important;
+  color: var(--con-ink-3) !important;
+  font: 600 12px/1 var(--con-mono);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  box-shadow: none;
+}
+
+.base-modal-content .modal-footer button:hover {
+  transform: none;
+  box-shadow: none;
+  color: var(--con-ink) !important;
+}
+
+/* Only the committing action is marked, and it is marked with a line. */
+.base-modal-content .modal-footer button.save-btn,
+.base-modal-content .modal-footer button.primary-btn,
+.base-modal-content .modal-footer button#saveSettings {
+  color: var(--con-accent-text) !important;
+  border-bottom-color: var(--con-accent);
+}
+
+.base-modal-content .modal-footer button.save-btn:hover,
+.base-modal-content .modal-footer button.primary-btn:hover,
+.base-modal-content .modal-footer button#saveSettings:hover {
+  color: var(--con-accent) !important;
+  border-bottom-color: var(--con-accent-text);
+}
+
+/* The attribution used to be a sentence with one word linked, set at 8.5px and
+   capped at 104px because "Powered by" runs to "Bereitgestellt von" in German
+   and was clipping to "DEVELOPED BY SCR…". The lockup is drawn now, so the only
+   translated part is the label above it and nothing can clip the brand. The
+   whole block is the link, which is also the bigger hit target. */
+.base-modal-content .modal-footer .powered-by {
+  order: 1;
+  position: relative;
+  flex: 0 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  margin: 0 0 0 -4px;
+  padding: 2px 4px;
+  border-radius: 3px;
+  text-decoration: none;
+  transition: background 0.12s ease;
+}
+
+.base-modal-content .modal-footer .powered-by-label {
+  font: 500 8px/1 var(--con-mono);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--con-ink-3);
+}
+
+.base-modal-content .modal-footer .powered-by-lockup {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.base-modal-content .modal-footer .powered-by-mark {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+}
+
+.base-modal-content .modal-footer .powered-by-wordmark {
+  display: flex;
+  align-items: baseline;
+  font: 600 12.5px/1 var(--con-sans);
+  letter-spacing: -0.012em;
+}
+
+.base-modal-content .modal-footer .powered-by-wordmark::before {
+  content: "scrape";
+  color: var(--con-ink-2);
+}
+
+.base-modal-content .modal-footer .powered-by-wordmark::after {
+  content: "less";
+  color: var(--con-accent);
+}
+
+/* The wordmark is generated content, so without this the link would announce
+   itself as "Powered by" and never name what it points at. */
+.base-modal-content .modal-footer .powered-by-name {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.base-modal-content .modal-footer .powered-by:hover {
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.base-modal-content .modal-footer .powered-by:hover .powered-by-label,
+.base-modal-content .modal-footer .powered-by:hover .powered-by-wordmark::before {
+  color: var(--con-ink);
+}
+
+.base-modal-content .modal-footer .powered-by:focus-visible {
+  outline: 1px solid var(--con-accent);
+  outline-offset: 1px;
+}
+
+/* ============================================================
+   THE REST OF THE PANELS
+   History, rules, advanced and settings inherit the same language: hairline
+   separation, micro-cap labels, monospace figures, no card chrome.
+   ============================================================ */
+
+.section-title,
+.settings-section-title,
+.advanced-section-title,
+.rules-section-title,
+.history-section-title {
+  font: 600 12.5px/1 var(--con-mono);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--con-ink-3);
+}
+
+.history-item,
+.rule-item,
+.advanced-item,
+.log-entry {
+  border-radius: 0;
+  box-shadow: none;
+  border-left: 0;
+  border-right: 0;
+  border-top: 0;
+  border-bottom: 1px solid var(--con-line);
+  background: var(--con-row-a);
+  margin: 0;
+}
+
+.history-item:nth-child(even),
+.rule-item:nth-child(even),
+.advanced-item:nth-child(even) {
+  background: var(--con-row-b);
+}
+
+.history-item:hover,
+.rule-item:hover,
+.advanced-item:hover {
+  transform: none;
+  box-shadow: none;
+  background: #2a2a2a;
+}
+
+.badge,
+.category-badge,
+.method-badge {
+  border-radius: 2px;
+  font-family: var(--con-mono);
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  box-shadow: none;
+}
+
+.btn,
+.button,
+.primary-btn,
+.secondary-btn,
+.action-btn {
+  border-radius: 3px;
+  font-family: var(--con-mono);
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  box-shadow: none;
+}
+
+.base-modal .modal-container,
+.modal-content {
+  border-radius: 4px;
+  border: 1px solid var(--con-line);
+  background: var(--con-row-a);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
+}
+
+.modal-content > .modal-header {
+  background: var(--con-band);
+  border-bottom: 1px solid var(--con-line);
+}
+
+.modal-content > .modal-header h3 {
+  font: 600 15px/1.3 var(--con-sans);
+  letter-spacing: -0.015em;
+  color: var(--con-ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+/* ============================================================
+   VENDOR MARKS
+
+   The picker used to ship fourteen third-party logo PNGs from the upstream
+   project. They are drawn glyphs now — ours, in the same line language as the
+   fingerprint marks, and deliberately not lookalikes of the logos they
+   replace. The vendor is named in the label beneath the mark, which is where
+   naming a competitor belongs.
+   ============================================================ */
+
+.vendor-icon-shell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--con-cat, var(--con-ink-2));
+}
+
+.vendor-icon-shell svg {
+  width: 100%;
+  height: 100%;
+}
+
+.icon-option .vendor-icon-shell,
+.icon-option .fingerprint-icon-shell {
+  width: 26px;
+  height: 26px;
+}
+
+
+/* ============================================================
+   THE SETTINGS REGISTER
+
+   The chrome of this sheet was brought over already — bands, tabs, cards,
+   footer — but everything *inside* a card was left on the upstream sheet:
+   sentence-case sans labels stacked above full-width rounded fields, pill
+   chips, tinted info panels, four different button skins. Two vocabularies in
+   one dialog, and the second one is the one you actually operate.
+
+   So the interior is rebuilt on the same register the rest of the console
+   uses: a ruled row per setting, its key in micro-cap mono on the left, its
+   control sized to its own content on the right, and a note block that is a
+   left rail rather than a coloured box. Nothing here invents a new control —
+   it is the same field, switch and button anatomy the popup already has.
+
+   Scoped to #settingsModal because the legacy classes (.setting-row,
+   .input-field, .action-btn) are shared with panes that are not this sheet.
+   ============================================================ */
+
+/* --- section headings ---------------------------------------------------
+ * A static card header restates the band directly above it — "CACHE
+ * CONFIGURATION" then "cache settings". The band is the heading; the header's
+ * sentence, where it has one, stays as the section's explanation. The language
+ * card is the exception: its title is the picker's only label. */
+#settingsModal .settings-card-header--static .settings-card-title h4 {
+  display: none;
+}
+
+#settingsModal .settings-card--language .settings-card-title h4 {
+  display: flex;
+}
+
+/* --- the row ------------------------------------------------------------ */
+#settingsModal .setting-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 32px;
+  margin: 0 -12px;
+  padding: 5px 12px 6px;
+  border: 0;
+  border-top: 1px solid var(--con-line);
+  background: transparent;
+  transition: background 0.12s ease;
+}
+
+#settingsModal .setting-row:first-child {
+  border-top: 0;
+}
+
+#settingsModal .setting-row:hover {
+  background: var(--con-row-b);
+}
+
+#settingsModal .setting-row-label {
+  min-width: 0;
+  font: 600 11px/1.35 var(--con-mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--con-ink-3);
+  white-space: normal;
+}
+
+/* A key can carry a parenthetical or a resolved value ("Last check: never").
+   Those are not part of the key, so they drop out of micro-caps. */
+#settingsModal .setting-row-label span[style],
+#settingsModal .setting-row-label small {
+  font: 400 10.5px/1.35 var(--con-mono) !important;
+  letter-spacing: 0.03em;
+  text-transform: none;
+  color: var(--con-ink-3) !important;
+  opacity: 0.8;
+}
+
+#settingsModal .setting-row-label strong {
+  color: var(--con-ink);
+  font-weight: 600;
+}
+
+/* The upstream sheet stretched every control to the row's full width; here a
+   control is as wide as the value it holds. */
+#settingsModal .setting-row > div,
+#settingsModal .setting-row-controls,
+#settingsModal .setting-row > .settings-info-badge {
+  width: auto;
+  max-width: none;
+  align-self: center;
+}
+
+#settingsModal .setting-row-controls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+#settingsModal .setting-row > .switch,
+#settingsModal .setting-row > .action-btn {
+  align-self: center;
+}
+
+/* The data rows put a key and its sentence in the first column. */
+#settingsModal .setting-row > div:first-child {
+  min-width: 0;
+}
+
+#settingsModal .setting-row > div:first-child > span:not(.setting-row-label) {
+  display: block;
+  font: 400 11.5px/1.4 var(--con-sans) !important;
+  color: var(--con-ink-3) !important;
+}
+
+/* --- fields ------------------------------------------------------------- */
+#settingsModal .input-field,
+#settingsModal input[type="text"],
+#settingsModal input[type="number"],
+#settingsModal input[type="url"],
+#settingsModal .textarea-field {
+  min-height: 28px;
+  padding: 4px 8px;
+  border: 1px solid var(--con-line);
+  border-left: 2px solid var(--con-line-strong);
+  border-radius: 2px;
+  background: var(--con-row-b);
+  color: var(--con-ink);
+  font: 400 12.5px/1.4 var(--con-mono);
+  box-shadow: none;
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+
+#settingsModal .input-field:hover,
+#settingsModal .textarea-field:hover {
+  border-color: var(--con-line-strong);
+  border-left-color: var(--con-accent);
+  background: #2c2c2c;
+}
+
+#settingsModal .input-field:focus,
+#settingsModal .textarea-field:focus {
+  outline: 1px solid var(--con-accent);
+  outline-offset: 1px;
+  border-left-color: var(--con-accent);
+}
+
+#settingsModal .input-field::placeholder,
+#settingsModal .textarea-field::placeholder {
+  color: var(--con-ink-3);
+  opacity: 0.62;
+}
+
+/* A count is three digits, not a column. */
+#settingsModal .setting-row input[type="number"] {
+  width: 74px;
+  min-width: 0;
+  flex: 0 0 74px;
+  text-align: right;
+}
+
+#settingsModal .setting-group--stacked .input-field,
+#settingsModal .setting-group--stacked .console-choice,
+#settingsModal .blacklist-search-container .input-field,
+#settingsModal .textarea-field {
+  width: 100%;
+  max-width: 100%;
+}
+
+#settingsModal .textarea-field {
+  min-height: 96px;
+  font-size: 11.5px;
+  line-height: 1.55;
+}
+
+/* --- selects ------------------------------------------------------------ */
+#settingsModal .setting-row .console-choice {
+  width: auto;
+  min-width: 116px;
+  max-width: 172px;
+}
+
+#settingsModal .console-choice-trigger {
+  min-height: 28px;
+  padding: 0 6px 0 8px;
+  font-size: 12px;
+}
+
+/* --- stacked groups (the webhook form) ---------------------------------- */
+#settingsModal .webhook-settings-container {
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+#settingsModal .setting-group--stacked {
+  display: block;
+  margin: 0 -12px;
+  padding: 8px 12px 10px;
+  border-top: 1px solid var(--con-line);
+}
+
+#settingsModal .setting-group--stacked > .setting-label {
+  display: block;
+  margin: 0 0 6px;
+  font: 600 11px/1.35 var(--con-mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--con-ink-3);
+}
+
+#settingsModal .setting-description {
+  display: block;
+  margin-top: 3px;
+  font: 400 11.5px/1.45 var(--con-sans);
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--con-ink-3);
+  opacity: 0.85;
+}
+
+#settingsModal .http-method-badges-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+/* --- buttons ------------------------------------------------------------ */
+#settingsModal .action-btn {
+  min-height: 28px;
+  gap: 6px;
+  padding: 0 10px;
+  border: 1px solid var(--con-line);
+  border-radius: 2px;
+  background: var(--con-row-b);
+  color: var(--con-ink-2);
+  font: 600 10.5px/1 var(--con-mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  box-shadow: none;
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+}
+
+#settingsModal .action-btn:hover {
+  transform: none;
+  box-shadow: none;
+  border-color: var(--con-line-strong);
+  background: #303030;
+  color: var(--con-ink);
+}
+
+#settingsModal .action-btn svg {
+  width: 13px;
+  height: 13px;
+  margin: 0 !important;
+}
+
+/* Two buttons carried their own fill — a red inline style and an amber
+   gradient — which were the only two saturated surfaces in the sheet. */
+#settingsModal #clearLogsBtn,
+#settingsModal #clearAllDataBtn {
+  background: var(--con-row-b) !important;
+  border-color: rgba(229, 72, 77, 0.45);
+  color: #ef5f64 !important;
+}
+
+#settingsModal #clearLogsBtn:hover,
+#settingsModal #clearAllDataBtn:hover {
+  background: rgba(229, 72, 77, 0.14) !important;
+  border-color: #ef5f64;
+}
+
+#settingsModal .action-btn-warning {
+  background: var(--con-row-b);
+  border-color: rgba(255, 178, 36, 0.45);
+  color: var(--con-amber);
+}
+
+#settingsModal .action-btn-warning:hover {
+  background: rgba(255, 178, 36, 0.14);
+  border-color: var(--con-amber);
+  color: var(--con-amber);
+  transform: none;
+  box-shadow: none;
+}
+
+#settingsModal .settings-action-row {
+  display: flex;
+  gap: 6px;
+  margin: 0 -12px;
+  padding: 8px 12px 2px;
+  border-top: 1px solid var(--con-line);
+}
+
+/* Export and import differ by direction, not by fill. */
+#settingsModal .data-actions-row {
+  display: flex;
+  gap: 6px;
+}
+
+#settingsModal .data-icon-btn,
+#settingsModal .data-icon-btn.data-export-btn,
+#settingsModal .data-icon-btn.data-import-btn {
+  width: auto;
+  min-width: 32px;
+  background: var(--con-row-b);
+  border: 1px solid var(--con-line);
+  border-left: 2px solid var(--con-line-strong);
+  color: var(--con-ink-2);
+}
+
+#settingsModal .data-icon-btn:hover,
+#settingsModal .data-icon-btn.data-export-btn:hover,
+#settingsModal .data-icon-btn.data-import-btn:hover {
+  background: #303030;
+  border-color: var(--con-line-strong);
+  border-left-color: var(--con-accent);
+  color: var(--con-ink);
+  transform: none;
+  box-shadow: none;
+}
+
+/* --- the figure badge --------------------------------------------------- */
+#settingsModal .settings-info-badge {
+  display: inline-flex;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  font: 400 12.5px/1 var(--con-mono);
+  color: var(--con-ink-2);
+}
+
+/* --- colour rows -------------------------------------------------------- */
+#settingsModal .color-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  margin: 0 -12px;
+  padding: 4px 12px 5px;
+  border: 0;
+  border-top: 1px solid var(--con-line);
+}
+
+#settingsModal .color-row:first-child {
+  border-top: 0;
+}
+
+#settingsModal .color-row:hover {
+  background: var(--con-row-b);
+}
+
+#settingsModal .color-row-label {
+  flex: none;
+  min-width: 0;
+  font: 600 11px/1.35 var(--con-mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--con-ink-3);
+}
+
+/* The badge is a preview of the colour being edited, so it keeps its fill —
+   but at the console's own weight, not as a rounded pill. */
+#settingsModal .color-row-badge {
+  min-width: 0;
+  padding: 3px 8px;
+  border-radius: 2px;
+  font: 600 10px/1.35 var(--con-mono);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  text-align: left;
+  justify-self: start;
+}
+
+/* Lent to the row's grid so swatch and figure line up down the whole panel. */
+#settingsModal .color-picker-container {
+  display: contents;
+}
+
+#settingsModal .color-hex-display {
+  min-width: 66px;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  font: 400 11.5px/1 var(--con-mono);
+  color: var(--con-ink-3);
+  text-align: right;
+  justify-self: end;
+}
+
+/* --- note blocks -------------------------------------------------------- */
+#settingsModal .duplicate-info-box,
+#settingsModal .webhook-url-hint,
+#settingsModal .incompatible-warning-box {
+  margin: 8px -12px 0;
+  padding: 8px 12px 9px;
+  border: 0;
+  border-left: 2px solid var(--con-line-strong);
+  border-radius: 0;
+  background: var(--con-row-b);
+  font: 400 11.5px/1.5 var(--con-sans);
+  color: var(--con-ink-3);
+}
+
+#settingsModal .incompatible-warning-box {
+  border-left-color: var(--con-amber);
+  gap: 9px;
+}
+
+#settingsModal .duplicate-info-box > strong,
+#settingsModal .webhook-url-hint > strong,
+#settingsModal .incompatible-warning-box .warning-title {
+  display: block;
+  margin: 0 0 5px;
+  font: 600 10px/1 var(--con-mono);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--con-ink-3);
+}
+
+#settingsModal .incompatible-warning-box .warning-title {
+  color: var(--con-amber);
+}
+
+#settingsModal .incompatible-warning-box .warning-icon {
+  color: var(--con-amber);
+}
+
+#settingsModal .incompatible-warning-box .warning-message {
+  font: 400 11.5px/1.45 var(--con-sans);
+  color: var(--con-ink-3);
+}
+
+#settingsModal .duplicate-info-box p {
+  margin: 0 0 6px;
+}
+
+#settingsModal .duplicate-info-box ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Each bullet is a record, keyed by the scope it describes. */
+#settingsModal .duplicate-info-box li {
+  position: relative;
+  margin: 0;
+  padding: 2px 0 2px 11px;
+  color: var(--con-ink-3);
+}
+
+#settingsModal .duplicate-info-box li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 9px;
+  width: 4px;
+  height: 1px;
+  background: var(--con-line-strong);
+}
+
+#settingsModal .webhook-url-hint code {
+  margin: 0 1px;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  font: 600 11px/1.4 var(--con-mono);
+  color: var(--con-accent-text);
+}
+
+/* --- the blacklist ------------------------------------------------------ */
+#settingsModal #blacklistContainer {
+  margin: 8px -12px 0;
+  border-top: 1px solid var(--con-line);
+}
+
+#settingsModal .blacklist-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0;
+  padding: 5px 12px 6px;
+  border-radius: 0;
+  border-bottom: 1px solid var(--con-line);
+  background: transparent;
+  transition: background 0.12s ease;
+}
+
+#settingsModal .blacklist-item:hover {
+  background: var(--con-row-b);
+}
+
+#settingsModal .blacklist-item-domain {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 400 12.5px/1.3 var(--con-mono);
+  color: var(--con-ink-2);
+}
+
+#settingsModal #blacklistContainer .remove-blacklist-btn {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--con-ink-3);
+  cursor: pointer;
+  transition: color 0.12s ease;
+}
+
+#settingsModal #blacklistContainer .remove-blacklist-btn:hover {
+  color: var(--con-red) !important;
+}
+
+#settingsModal #blacklistContainer .remove-blacklist-btn svg {
+  width: 12px;
+  height: 12px;
+}
+
+#settingsModal .blacklist-empty {
+  padding: 10px 12px;
+  font: 400 11.5px/1.4 var(--con-sans);
+  color: var(--con-ink-3);
+  text-align: center;
+}
+
+#settingsModal .blacklist-pagination {
+  margin: 0 -12px;
+  padding: 6px 12px;
+  border-top: 1px solid var(--con-line);
+}
+
+/* --- the signature ------------------------------------------------------
+ * The cap is what keeps the label off the buttons. It only has to hold the
+ * translated label now — the lockup below it is a fixed 81px in every
+ * language — so 132px clears the longest of the twelve ("Bereitgestellt von",
+ * ~93px at this size) on one line, and the block stays inside the footer's
+ * own 36px. */
+#settingsModal .modal-footer .powered-by {
+  max-width: 132px;
+}

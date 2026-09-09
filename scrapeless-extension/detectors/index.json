@@ -1,0 +1,99 @@
+{
+    "version": "1.0.0",
+    "antibot": {
+        "colour": "#FF6B4A",
+        "detectors": [
+            "detect-akamai",
+            "detect-cloudflare",
+            "detect-aws-waf",
+            "detect-f5",
+            "detect-datadome",
+            "detect-incapsula",
+            "detect-perimeterx",
+            "detect-shapesecurity",
+            "detect-sucuri",
+            "detect-reblaze",
+            "detect-threatmetrix",
+            "detect-meetrics",
+            "detect-ocule",
+            "detect-cheq",
+            "detect-kasada"
+        ]
+    },
+    "captcha": {
+        "colour": "#6CB6FF",
+        "detectors": [
+            "detect-hcaptcha",
+            "detect-recaptcha",
+            "detect-geetest",
+            "detect-qcloud",
+            "detect-funcaptcha",
+            "detect-aliexpress",
+            "detect-friendlycaptcha",
+            "detect-captchaeu"
+        ]
+    },
+    "fingerprint": {
+        "colour": "#9B8AF7",
+        "detectors": [
+            "detect-audio-fingerprint",
+            "detect-battery-fingerprint",
+            "detect-canvas-fingerprint",
+            "detect-clipboard-fingerprint",
+            "detect-crypto-fingerprint",
+            "detect-css-fingerprint",
+            "detect-font-fingerprint",
+            "detect-gamepads-fingerprint",
+            "detect-geolocation-fingerprint",
+            "detect-hardware-fingerprint",
+            "detect-indexeddb-fingerprint",
+            "detect-media-fingerprint",
+            "detect-navigator-fingerprint",
+            "detect-orientation-fingerprint",
+            "detect-performance-fingerprint",
+            "detect-screen-fingerprint",
+            "detect-storage-fingerprint",
+            "detect-timezone-fingerprint",
+            "detect-usb-fingerprint",
+            "detect-webgl-fingerprint",
+            "detect-webrtc-fingerprint"
+        ]
+    },
+    "tags": {
+        "dom": {
+            "colour": "#7ED67F"
+        },
+        "header": {
+            "colour": "#E4A0D6"
+        },
+        "cookie": {
+            "colour": "#E6A647"
+        },
+        "content": {
+            "colour": "#4FD1B5"
+        },
+        "url": {
+            "colour": "#6CB6FF"
+        },
+        "js_hooks": {
+            "colour": "#B6A9FF"
+        },
+        "window": {
+            "colour": "#F2857E"
+        },
+        "payload": {
+            "colour": "#C4D160"
+        }
+    },
+    "badge": {
+        "low": {
+            "colour": "#4FD1B5"
+        },
+        "medium": {
+            "colour": "#E6A647"
+        },
+        "high": {
+            "colour": "#F06A54"
+        }
+    }
+}

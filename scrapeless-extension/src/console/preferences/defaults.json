@@ -1,0 +1,75 @@
+{
+  "version": "1.0.0",
+  "settings": {
+    "alertsActive": true,
+    "diagnosticMode": false,
+    "journalActive": false,
+    "journalCeiling": 5000,
+
+    "badgePalette": {
+      "low": "#4FD1B5",
+      "medium": "#e6a647",
+      "high": "#f06a54"
+    },
+
+    "taxonomyPalette": {
+      "antibot": "#FF6B4A",
+      "captcha": "#6CB6FF",
+      "fingerprint": "#9B8AF7"
+    },
+
+    "methodPalette": {
+      "dom": "#7ED67F",
+      "headers": "#E4A0D6",
+      "cookies": "#E6A647",
+      "content": "#4FD1B5",
+      "urls": "#6CB6FF",
+      "js_hooks": "#B6A9FF",
+      "window": "#F2857E",
+      "payload": "#C4D160"
+    },
+
+    "scanning": {
+      "memoDuration": 12,
+      "memoUnit": "hours",
+      "memoScope": "domain",
+      "skippedDomains": [],
+      "probeConfig": {}
+    },
+
+    "pageSignals": {
+      "pageSignalsActive": false
+    },
+
+    "relay": {
+      "relayActive": false,
+      "relayOnMemoHit": false,
+      "relayMethod": "POST",
+      "relayEndpoint": "",
+      "relayContentType": "application/json",
+      "relayTemplate": "{\"url\": \"<SITEURL>\", \"hostname\": \"<HOSTNAME>\", \"title\": \"<TITLE>\", \"favicon\": \"<FAVICON>\", \"detections\": <DETECTIONS>, \"timestamp\": \"<TIMESTAMP>\", \"count\": <DETECTION_COUNT>, \"categories\": \"<CATEGORIES>\"}",
+      "relayHeaders": []
+    },
+
+    "archive": {
+      "archiveCeiling": 0,
+      "archivePruneDays": 30,
+      "exportEncoding": "json",
+      "includeMoments": true,
+      "archiveOnMemoHit": false
+    },
+
+    "repeatGuard": {
+      "repeatGuardActive": false,
+      "repeatScope": "full_url",
+      "repeatDuration": 1,
+      "repeatUnit": "hours"
+    },
+
+    "catalogSync": {
+      "autoSync": false,
+      "syncIntervalHours": 12,
+      "lastSyncMoment": 0
+    }
+  }
+}

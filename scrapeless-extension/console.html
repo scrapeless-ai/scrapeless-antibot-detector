@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scrapeless Antibot Detector</title>
+  <link rel="stylesheet" href="presentation/foundations.css">
+  <link rel="stylesheet" href="presentation/shell.css">
+  <link rel="stylesheet" href="presentation/findings.css">
+  <link rel="stylesheet" href="presentation/archive.css">
+  <link rel="stylesheet" href="presentation/policies.css">
+  <link rel="stylesheet" href="presentation/preferences.css">
+  <link rel="stylesheet" href="presentation/locale-picker.css">
+  <link rel="stylesheet" href="presentation/console-theme.css">
+  <link rel="stylesheet" href="presentation/control-deck.css">
+</head>
+<body>
+  <div id="app">
+    <header class="header">
+      <div class="header-content">
+        <div class="logo">
+          <div class="logo-icon-wrapper">
+            <img src="brand/toolbar-32.png" alt="Scrapeless" width="32" height="32" class="logo-icon">
+          </div>
+          <div class="logo-text">
+            <span id="appBrand" data-i18n="extensionName">Scrapeless: anti-bot detector</span>
+            <span id="appVersion" class="app-version"></span>
+          </div>
+        </div>
+        <div class="header-controls">
+          <div class="toggle-switch">
+            <input type="checkbox" id="enableToggle" class="toggle-input" checked aria-label="Enable or disable detection" data-i18n-aria-label="enableOrDisableDetection">
+            <label for="enableToggle" class="toggle-label">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <button id="settingsBtn" class="settings-btn" title="Settings" aria-label="Open settings" data-i18n-title="settings" data-i18n-aria-label="openSettings">
+            <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z" fill="currentColor"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Tabs Navigation -->
+      <nav class="tabs-nav">
+        <button class="tab-btn active" data-tab="detection">
+          <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12,1L3,5V11C3,16.55 6.84,21.74 12,23C17.16,21.74 21,16.55 21,11V5L12,1M12,7C13.4,7 14.8,8.6 14.8,10V11.5C15.4,12.1 16,12.8 16,13.8V17.8C16,18.9 15.1,19.8 14,19.8H10C8.9,19.8 8,18.9 8,17.8V13.8C8,12.8 8.6,12.1 9.2,11.5V10C9.2,8.6 10.6,7 12,7Z" fill="currentColor"/>
+          </svg>
+          <span data-i18n="tabDetection">Detection</span>
+        </button>
+        <button class="tab-btn" data-tab="history">
+          <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M16.2,16.2L11,13V7H12.5V12.2L17,14.9L16.2,16.2Z" fill="currentColor"/>
+          </svg>
+          <span data-i18n="tabHistory">History</span>
+        </button>
+        <button class="tab-btn" data-tab="rules">
+          <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.98C19.47,12.66 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.97 19.05,5.05L16.56,6.05C16.04,5.65 15.48,5.32 14.87,5.07L14.49,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.51,2.42L9.13,5.07C8.52,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.72,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.21,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.21,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.52,18.68 9.13,18.93L9.51,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.49,21.58L14.87,18.93C15.48,18.67 16.04,18.34 16.56,17.94L19.05,18.95C19.28,19.04 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.98Z" fill="currentColor"/>
+          </svg>
+          <span data-i18n="tabRules">Detectors</span>
+        </button>
+        <!-- Opens the analytics board in its own tab. Deliberately carries no
+             data-tab: it is not a pane the shell router switches to, and the
+             router binds .tab-btn[data-tab] only. -->
+        <button class="tab-btn tab-btn-away" id="analyticsLink" title="Open the analytics board" data-i18n-title="openAnalytics">
+          <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M3,3H5V19H21V21H3V3M7,15H9V11H7V15M11,15H13V7H11V15M15,15H17V13H15V15Z" fill="currentColor"/>
+          </svg>
+          <span data-i18n="tabAnalytics">Analytics</span>
+        </button>
+      </nav>
+    </header>
+
+    <main class="main">
+      <!-- Tab content will be populated by respective section JavaScript files -->
+
+      <!-- Detection Tab -->
+      <div id="detectionTab" class="tab-content active">
+        <!-- Inline loading placeholder (replaced by detection.html on init) -->
+        <div class="loading-state" style="display: flex;">
+          <div class="loading-content">
+            <div class="loading-spinner">
+              <svg class="loading-spinner-ring" viewBox="0 0 50 50" aria-hidden="true" focusable="false">
+                <circle class="spinner-track" cx="25" cy="25" r="20"></circle>
+              </svg>
+              <svg class="spinner-svg" viewBox="0 0 50 50">
+                <circle class="spinner-circle" cx="25" cy="25" r="20"></circle>
+              </svg>
+              <svg class="loading-spinner-mark" viewBox="0 0 25 24" aria-hidden="true" focusable="false">
+                <path d="M8.47721 19.8725C9.14926 19.8336 9.81549 19.7028 10.4521 19.4846C11.7267 19.0477 12.8862 18.2289 13.5222 17.023C14.1369 15.858 14.1711 14.4332 13.6555 13.2263C12.9103 13.7531 12.004 14.0475 11.091 14.0727C8.33621 14.1483 6.17823 11.797 6.26929 9.11492C6.32751 7.40002 7.12616 5.73353 8.22043 4.43286C9.42606 2.99963 11.1167 1.99973 12.9564 1.62153C14.6876 1.26559 16.4877 1.46121 18.1006 2.18084C18.8644 2.52166 19.5728 2.97778 20.2005 3.52542C20.191 3.44464 20.0934 3.27652 19.9812 3.14782C19.1023 2.30958 18.0887 1.61144 16.9833 1.09151C16.5692 0.896796 16.1436 0.726988 15.7087 0.58315C13.0741 -0.288913 10.1997 -0.179838 7.62228 0.889848C5.04499 1.95979 2.94043 3.91737 1.70231 6.39724C1.33306 7.13684 1.04464 7.9159 0.844083 8.71728C0.137315 11.5425 0.455174 14.9581 2.39942 17.2638C3.13785 18.1396 4.072 18.8317 5.12734 19.2845C6.18268 19.7373 7.32969 19.9388 8.47721 19.8725Z" class="spinner-mark-ink"/>
+                <path d="M12.4399 5.92979C13.6702 4.66448 15.279 3.82883 17.0265 3.54805L17.0611 3.53608C15.5625 3.19603 13.9933 3.34133 12.5838 3.95089C11.5309 4.40603 10.5936 5.11277 9.8685 5.99804C9.21646 6.79412 8.74227 7.7257 8.60624 8.75109C8.54101 9.24201 8.55089 9.74222 8.63551 10.2302C8.82803 11.3442 9.39989 12.3584 10.2553 13.1029L10.2647 13.1085C10.0832 12.2713 10.0628 11.4126 10.1997 10.5768L10.2011 10.568C10.4245 8.82212 11.2097 7.19469 12.44 5.92938L12.4398 5.92953L12.4399 5.92979Z" fill="#B7EBE1"/>
+                <path d="M10.2284 13.0794C10.2314 13.0929 10.2344 13.1064 10.2375 13.1202L10.252 13.1129C10.2518 13.1082 10.2516 13.1038 10.2511 13.0992C10.2434 13.0926 10.2361 13.086 10.2284 13.0794Z" fill="#909090"/>
+                <path d="M10.2475 13.0254C10.0821 12.2144 10.0676 11.3848 10.1998 10.5768L10.2013 10.568C10.6444 7.10239 14.0813 4.56716 17.5183 4.85654C19.7705 5.04605 21.6916 6.38015 22.9403 8.21065C23.4835 9.00711 23.8982 9.88911 24.1645 10.8142C24.7571 12.8741 24.541 15.1576 23.703 17.1205C23.703 17.1205 23.6825 16.6081 23.6679 16.3841C23.6499 16.1027 23.6216 15.8223 23.5837 15.5431C23.5095 14.9984 23.3975 14.4585 23.2491 13.9288C22.611 11.6543 21.3492 9.48826 19.1059 8.49463C18.7791 8.34983 18.4406 8.23209 18.0941 8.14305C15.9639 7.59451 13.7484 8.27813 12.0085 9.53665C11.4785 9.91991 11.043 10.3614 10.73 10.941C10.3845 11.5812 10.2182 12.3012 10.2474 13.0258L10.2475 13.0254Z" fill="#83CDC0"/>
+                <path d="M12.2794 9.3476L12.2789 9.34898C12.7956 9.10406 13.2714 8.93504 13.8031 8.8653C14.7651 8.73925 15.7653 8.97578 16.5773 9.50105C18.3658 10.6582 19.0073 13.0531 18.8466 15.0634C18.7784 15.916 18.5695 16.7567 18.2415 17.5464C17.8534 18.4806 17.2942 19.3428 16.5981 20.0797C15.3962 21.3521 13.8236 22.2184 12.1011 22.5572C10.379 22.8959 8.59323 22.6903 6.99437 21.9692C6.18932 21.6058 5.45175 21.1209 4.80597 20.5361C4.84259 20.6613 4.86649 20.7317 4.98536 20.8641C6.36382 22.2318 8.08946 23.2364 10.0079 23.7589C10.2324 23.8201 10.4587 23.8743 10.6863 23.9216C12.6506 24.1767 14.7118 23.8151 16.5598 22.7542C17.9259 21.9699 19.0176 20.8942 19.8009 19.6517C19.3055 21.0341 18.4808 22.3051 17.3609 23.3371C18.7243 22.7937 19.9703 21.9808 20.9445 20.8669C21.8073 19.8802 22.4389 18.7 22.779 17.4371C23.2667 15.627 23.1434 13.677 22.4311 11.942C22.354 11.7542 22.2736 11.5614 22.1892 11.3664C21.4705 10.1351 20.4695 9.09801 19.1061 8.49407C18.7793 8.34927 18.4408 8.23153 18.0943 8.14249C16.0731 7.6221 13.9753 8.21092 12.2797 9.34745L12.2794 9.3476Z" fill="#12A594"/>
+              </svg>
+            </div>
+            <h2 class="loading-text" data-i18n="notifLoadingDefault">Loading...</h2>
+          </div>
+        </div>
+      </div>
+
+      <!-- History Tab -->
+      <div id="historyTab" class="tab-content" style="display: none;">
+      <!-- Content populated by DetectionHistory -->
+      </div>
+
+      <!-- Rules Tab -->
+      <div id="rulesTab" class="tab-content">
+        <!-- Content populated by Rules.js -->
+      </div>
+
+
+    </main>
+  </div>
+
+  <!-- Settings Modal - populated by Settings.js -->
+  <div id="settingsModal" class="base-modal">
+    <!-- Content populated by Settings.js -->
+  </div>
+
+  <!-- Scripts -->
+  <!-- Core modules (foundation - must load first) -->
+  <script src="src/foundation/locale-runtime.js"></script>
+  <script src="src/foundation/telemetry.js"></script>
+  <script src="src/foundation/badge-tokens.js"></script>
+  <script src="src/foundation/runtime-policy.js"></script>
+  <script src="src/foundation/text-codec.js"></script>
+  <script src="src/foundation/web-address.js"></script>
+  <script src="src/scanning/finding-metrics.js"></script>
+  <script src="src/scanning/finding-totals.js"></script>
+  <script src="src/foundation/fingerprint-glyphs.js"></script>
+  <script src="src/foundation/brand-glyphs.js"></script>
+  <script src="src/foundation/extension-gateway.js"></script>
+  <script src="src/foundation/extension-store.js"></script>
+  <!-- Detection modules -->
+  <script src="src/scanning/taxonomy-catalog.js"></script>
+  <script src="src/scanning/rule-catalog.js"></script>
+  <script src="src/scanning/evidence-scorer.js"></script>
+  <script src="src/scanning/compiled-pattern-pool.js"></script>
+  <script src="src/scanning/method-plan.js"></script>
+  <script src="src/scanning/page-snapshot.js"></script>
+  <script src="src/scanning/signal-matcher.js"></script>
+  <script src="src/scanning/probe-batch-relay.js"></script>
+  <script src="src/scanning/scan-engine.js"></script>
+  <!-- UI modules -->
+  <script src="src/console/shared/page-cursor.js"></script>
+  <script src="src/console/shared/theme-palette.js"></script>
+  <script src="src/console/shared/toast-center.js"></script>
+  <script src="src/console/shared/choice-rail.js"></script>
+  <script src="src/probe/property-predicate.js"></script>
+  <!-- Update manager -->
+  <script src="src/foundation/catalog-updater.js"></script>
+  <!-- Section core files -->
+  <script src="src/console/findings/view-state.js"></script>
+  <script src="src/console/findings/presenter.js"></script>
+  <script src="src/console/archive/presenter.js"></script>
+  <script src="src/console/policies/dialog-coordinator.js"></script>
+  <script src="src/console/policies/presenter.js"></script>
+  <!-- Section extension files (after class definitions) -->
+  <script src="src/console/findings/scan-client.js"></script>
+  <script src="src/console/findings/renderer.js"></script>
+  <script src="src/console/findings/commands.js"></script>
+  <script src="src/console/findings/finding-dialog.js"></script>
+  <script src="src/console/policies/markup.js"></script>
+  <script src="src/console/policies/condition-builder.js"></script>
+  <script src="src/console/policies/method-fields.js"></script>
+  <script src="src/console/policies/editor-dialog.js"></script>
+  <script src="src/console/policies/editor-controller.js"></script>
+  <script src="src/console/policies/commands.js"></script>
+  <script src="src/console/policies/renderer.js"></script>
+  <script src="src/console/policies/help-dialog.js"></script>
+  <script src="src/console/policies/glyph-dialog.js"></script>
+  <script src="src/console/policies/dom-condition-fields.js"></script>
+  <script src="src/console/policies/global-condition-fields.js"></script>
+  <script src="src/console/policies/pattern-field-tools.js"></script>
+  <script src="src/console/policies/bindings.js"></script>
+  <!-- ADVANCED_SCRIPTS_START -->
+  <!-- Base template system for Advanced modules -->
+  <!-- Advanced module implementations -->
+  <!-- ADVANCED_SCRIPTS_END -->
+  <!-- Settings core + extensions -->
+  <script src="src/console/preferences/presenter.js"></script>
+  <script src="src/console/preferences/runtime-service.js"></script>
+  <script src="src/console/preferences/form.js"></script>
+  <!-- SettingsUI feature extensions — load after settings-ui.js so the global is defined. -->
+  <script src="src/console/preferences/webhook.js"></script>
+  <script src="src/console/preferences/blocked-sites.js"></script>
+  <script src="src/console/preferences/palette.js"></script>
+  <script src="src/console/preferences/diagnostics.js"></script>
+  <script src="src/console/preferences/data-controls.js"></script>
+  <script src="src/console/preferences/catalog-updates.js"></script>
+  <script src="src/console/preferences/locale-picker.js"></script>
+  <script src="src/entry/console.js"></script>
+</body>
+</html>

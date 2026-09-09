@@ -1,0 +1,805 @@
+/* ==========================================================================
+   Analytics board
+   --------------------------------------------------------------------------
+   The console document idiom carried onto a full-width page: mono micro-caps
+   labels, filled bands, one hairline weight, and data as the only loud thing.
+   ========================================================================== */
+
+:root {
+  --viz-ground: #161616;
+  --viz-surface: #1c1c1c;
+  --viz-band: #252525;
+  --viz-line: #3d3d3d;
+  --viz-line-soft: #2e2e2e;
+
+  --viz-ink: #eeeeee;
+  --viz-ink-2: #c8c8c8;
+  --viz-ink-3: #a2a2a2;
+
+  --viz-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+  --viz-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, system-ui, sans-serif;
+
+  /* Categorical slots - identity, assigned in fixed order, never cycled.
+     Validated for the dark mode band, chroma floor, all-pairs CVD separation
+     (worst deutan dE 13.9), normal-vision floor (23.3) and >= 3:1 contrast
+     against --viz-surface. Re-run the check before changing any of them. */
+  --viz-slot-1: #F15214;
+  --viz-slot-2: #2A8EFF;
+  --viz-slot-3: #9F43A8;
+  --viz-slot-4: #8A8A8A;
+
+  /* Status - reserved meaning, never reused as "series 4". Always shipped with
+     a label beside the swatch, never colour alone. */
+  --viz-grade-low: #56d2c0;
+  --viz-grade-medium: #ffb224;
+  --viz-grade-high: #ef5f64;
+
+  /* Sequential ramp - one hue, monotone lightness, light end clears the
+     surface at 2.23:1. Magnitude only. */
+  --viz-ramp-1: #085E55;
+  --viz-ramp-2: #007A6E;
+  --viz-ramp-3: #009788;
+  --viz-ramp-4: #00B5A3;
+  --viz-ramp-5: #08D7C3;
+  --viz-empty: #232323;
+}
+
+body {
+  margin: 0;
+  background: var(--viz-ground);
+  color: var(--viz-ink);
+  font-family: var(--viz-sans);
+  font-size: 13px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---- masthead ---------------------------------------------------------- */
+
+.viz-masthead {
+  background: var(--viz-band);
+  border-bottom: 1px solid var(--viz-line);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.viz-masthead-inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 12px 22px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.viz-brand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  text-decoration: none;
+  color: inherit;
+  border-radius: 3px;
+}
+.viz-brand:hover .viz-wordmark { color: #ffffff; }
+.viz-brand:focus-visible { outline: 2px solid var(--viz-ramp-5); outline-offset: 3px; }
+.viz-brand-mark { display: block; }
+.viz-brand-text { display: flex; flex-direction: column; line-height: 1.15; }
+
+.viz-wordmark {
+  font-family: var(--viz-mono);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--viz-ink);
+}
+/* "less" carries the brand accent, as the console header and scrapeless.com
+   both set it. It was hardcoded to #ef5f64 — which is --viz-grade-high, the
+   High bypass-difficulty colour — so the wordmark was painted in this page's
+   own high-threat semantic. */
+.viz-wordmark em { font-style: normal; color: var(--viz-ramp-5); }
+
+.viz-brand-sub {
+  font-family: var(--viz-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--viz-ink-3);
+  margin-top: 2px;
+}
+
+.viz-masthead-meta { display: flex; align-items: center; gap: 10px; }
+
+.viz-span {
+  font-family: var(--viz-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.05em;
+  color: var(--viz-ink-3);
+  margin-right: 4px;
+}
+
+.viz-btn {
+  font-family: var(--viz-mono);
+  font-size: 10px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--viz-ink-2);
+  background: var(--viz-surface);
+  border: 1px solid var(--viz-line);
+  border-radius: 3px;
+  padding: 6px 11px;
+  cursor: pointer;
+  transition: border-color 0.12s ease, color 0.12s ease, background 0.12s ease;
+}
+.viz-btn:hover { border-color: #5c5c5c; color: var(--viz-ink); }
+.viz-btn:focus-visible { outline: 2px solid var(--viz-ramp-5); outline-offset: 1px; }
+.viz-btn[aria-pressed="true"] { color: #0f0f0f; background: var(--viz-ramp-5); border-color: var(--viz-ramp-5); }
+
+.viz-btn-accent { color: #0f1413; background: var(--viz-ramp-5); border-color: var(--viz-ramp-5); }
+.viz-btn-accent:hover { background: #26e6d2; border-color: #26e6d2; color: #0f1413; }
+
+/* ---- flash ------------------------------------------------------------- */
+
+.viz-flash {
+  max-width: 1280px;
+  margin: 12px auto -4px;
+  padding: 8px 14px;
+  background: #1d2a28;
+  border: 1px solid #2f4744;
+  border-radius: 3px;
+  font-family: var(--viz-mono);
+  font-size: 11px;
+  color: #9fe4d8;
+}
+
+/* ---- filter rail ------------------------------------------------------- */
+/* One row above everything it scopes - never a filter inside a chart card. */
+
+.viz-filters {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 16px 22px 4px;
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  flex-wrap: wrap;
+}
+
+.viz-filter-group { display: flex; align-items: center; gap: 9px; }
+.viz-filter-grow { flex: 1 1 220px; min-width: 200px; }
+
+.viz-filter-label {
+  font-family: var(--viz-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--viz-ink-3);
+}
+
+.viz-seg {
+  display: inline-flex;
+  background: var(--viz-surface);
+  border: 1px solid var(--viz-line);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.viz-seg-btn {
+  font-family: var(--viz-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  color: var(--viz-ink-3);
+  background: transparent;
+  border: 0;
+  border-right: 1px solid var(--viz-line);
+  padding: 6px 11px;
+  cursor: pointer;
+  transition: color 0.12s ease, background 0.12s ease;
+}
+.viz-seg-btn:last-child { border-right: 0; }
+.viz-seg-btn:hover { color: var(--viz-ink); background: #2a2a2a; }
+.viz-seg-btn:focus-visible { outline: 2px solid var(--viz-ramp-5); outline-offset: -2px; }
+.viz-seg-btn.is-on { color: var(--viz-ink); background: var(--viz-band); box-shadow: inset 0 -2px 0 var(--viz-ramp-5); }
+
+/* The custom window's two fields. Hidden until the Custom segment asks for
+   them, so the common case keeps the shorter filter row. */
+.viz-range { display: inline-flex; align-items: center; gap: 7px; }
+.viz-range[hidden] { display: none; }
+
+.viz-date {
+  font-family: var(--viz-mono);
+  font-size: 10.5px;
+  color: var(--viz-ink);
+  background: var(--viz-surface);
+  border: 1px solid var(--viz-line);
+  border-radius: 3px;
+  padding: 5px 7px;
+  /* Chrome draws the native calendar and the picker indicator from this. Without
+     it the popup arrives white-on-white in front of a dark board. */
+  color-scheme: dark;
+}
+.viz-date:hover { border-color: #5c5c5c; }
+.viz-date:focus-visible { outline: 2px solid var(--viz-ramp-5); outline-offset: 1px; }
+
+.viz-range-dash {
+  font-family: var(--viz-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--viz-ink-3);
+}
+
+.viz-range-clear {
+  font-family: var(--viz-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  color: var(--viz-ink-3);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  padding: 5px 7px;
+  cursor: pointer;
+}
+.viz-range-clear:hover { color: var(--viz-ink); border-color: var(--viz-line); }
+.viz-range-clear:focus-visible { outline: 2px solid var(--viz-ramp-5); outline-offset: 1px; }
+
+.viz-search {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--viz-mono);
+  font-size: 11.5px;
+  color: var(--viz-ink);
+  background: var(--viz-surface);
+  border: 1px solid var(--viz-line);
+  border-radius: 3px;
+  padding: 6px 10px;
+}
+.viz-search::placeholder { color: #6f6f6f; }
+.viz-search:focus { outline: none; border-color: var(--viz-ramp-4); }
+
+/* ---- import / empty ---------------------------------------------------- */
+
+.viz-import, .viz-empty { max-width: 1280px; margin: 18px auto; padding: 0 22px; }
+
+.viz-drop {
+  border: 1px dashed var(--viz-line);
+  border-radius: 4px;
+  background: var(--viz-surface);
+  padding: 22px;
+  text-align: center;
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+.viz-drop.is-hot { border-color: var(--viz-ramp-5); background: #1d2a28; }
+.viz-drop-line { margin: 0 0 6px; font-size: 13px; color: var(--viz-ink-2); }
+.viz-drop-pick { color: var(--viz-ramp-5); cursor: pointer; text-decoration: underline; }
+.viz-drop-pick input { display: none; }
+.viz-drop-note { margin: 0; font-size: 11.5px; color: var(--viz-ink-3); }
+.viz-drop-note code { font-family: var(--viz-mono); color: var(--viz-ink-2); }
+
+.viz-empty {
+  text-align: center;
+  padding-top: 60px;
+  padding-bottom: 60px;
+}
+.viz-empty-title {
+  font-family: var(--viz-mono);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--viz-ink-3);
+  margin: 0 0 8px;
+}
+.viz-empty-note { margin: 0; font-size: 13px; color: var(--viz-ink-2); }
+
+/* ---- board grid -------------------------------------------------------- */
+
+.viz-board {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 12px 22px 60px;
+  /* Multi-column, not grid. A two-column grid packs into *rows*, so any pair
+     of unequal cards leaves a hole beside the shorter one, and an odd card
+     count leaves a whole column empty next to the last card. Columns flow and
+     balance instead, so cards pack against each other whatever their height.
+     `column-span: all` on the section rules splits the flow per section, so a
+     card never migrates across a heading. */
+  column-count: 2;
+  column-gap: 14px;
+}
+
+.viz-board > .viz-card {
+  /* A card must not be split down the middle by a column break. */
+  break-inside: avoid;
+  margin: 0 0 14px;
+}
+
+.viz-section,
+.viz-tiles,
+.viz-card-wide {
+  column-span: all;
+}
+
+/* A section rule, not a card. The label sits on the hairline so the board
+   reads as one document with parts rather than a wall of equal boxes. */
+.viz-section {
+  margin: 20px 0 12px;
+  padding-bottom: 7px;
+  border-bottom: 1px solid var(--viz-line);
+  font-family: var(--viz-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--viz-ink-3);
+}
+
+.viz-section:first-of-type { margin-top: 6px; }
+
+.viz-tiles {
+  margin-bottom: 14px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  background: var(--viz-line-soft);
+  border: 1px solid var(--viz-line);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.viz-tile {
+  background: var(--viz-surface);
+  padding: 13px 14px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.viz-tile-label {
+  font-family: var(--viz-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--viz-ink-3);
+}
+
+/* Proportional figures on the hero values - tabular-nums makes a large
+   standalone number read loose. */
+.viz-tile-value {
+  font-family: var(--viz-sans);
+  font-size: 27px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--viz-ink);
+  line-height: 1.1;
+}
+
+.viz-tile-note {
+  font-family: var(--viz-mono);
+  font-size: 10px;
+  color: var(--viz-ink-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---- card -------------------------------------------------------------- */
+
+/* `hidden` is set by the presenter on cards that have nothing to show. The
+   card's own `display: flex` outranks the user-agent `[hidden] {display:none}`,
+   so without this an empty card renders as a bare header - which is exactly
+   how the coverage, rate, pairs and evidence cards leaked onto a sparse board. */
+.viz-card[hidden] { display: none; }
+
+.viz-card {
+  background: var(--viz-surface);
+  border: 1px solid var(--viz-line);
+  border-radius: 4px;
+  padding: 0 0 14px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.viz-card-wide { margin-bottom: 14px; }
+
+.viz-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  background: var(--viz-band);
+  border-bottom: 1px solid var(--viz-line);
+  border-radius: 4px 4px 0 0;
+}
+
+.viz-card-title {
+  margin: 0;
+  font-family: var(--viz-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--viz-ink-2);
+}
+
+.viz-card-note {
+  font-family: var(--viz-mono);
+  font-size: 10px;
+  color: var(--viz-ink-3);
+}
+
+/* ---- pager ------------------------------------------------------------- */
+/* Only drawn when a list runs past one page; a short list carries no chrome. */
+
+.viz-pager { display: flex; align-items: center; gap: 4px; }
+.viz-pager[hidden] { display: none; }
+
+.viz-page-btn {
+  font-family: var(--viz-mono);
+  font-size: 12px;
+  line-height: 1;
+  color: var(--viz-ink-2);
+  background: var(--viz-surface);
+  border: 1px solid var(--viz-line);
+  border-radius: 3px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: color 0.12s ease, border-color 0.12s ease;
+}
+.viz-page-btn:hover:not(:disabled) { color: var(--viz-ink); border-color: #5c5c5c; }
+.viz-page-btn:focus-visible { outline: 2px solid var(--viz-ramp-5); outline-offset: 1px; }
+.viz-page-btn:disabled { color: #5a5a5a; cursor: default; }
+
+.viz-page-count {
+  font-family: var(--viz-mono);
+  font-size: 10px;
+  color: var(--viz-ink-3);
+  font-variant-numeric: tabular-nums;
+  min-width: 74px;
+  text-align: center;
+}
+
+.viz-plot { padding: 14px 14px 4px; min-width: 0; }
+/* Wide plots scroll inside their own card - the page body never scrolls
+   sideways, and the axis band is inside the scroller so it never gets cropped. */
+.viz-plot-scroll { overflow-x: auto; overflow-y: hidden; }
+/* Auto margins centre a fixed-width plot that fits and collapse to zero when it
+   overflows, so the scroller never crops the left edge. */
+.viz-plot-scroll svg { margin: 0 auto; }
+
+.viz-donut-row {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 4px 14px 0;
+  flex-wrap: wrap;
+}
+.viz-donut-row .viz-plot { flex: 0 0 190px; padding: 10px 0; }
+.viz-donut-row .viz-legend { flex: 1 1 150px; }
+
+/* ---- legend ------------------------------------------------------------ */
+/* Always present for two or more series - identity is never colour alone. */
+
+.viz-legend { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.viz-legend-stack { flex-direction: column; align-items: flex-start; gap: 7px; padding: 0 14px 4px; }
+
+.viz-key { display: inline-flex; align-items: center; gap: 6px; }
+
+.viz-key-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  flex: 0 0 auto;
+  display: inline-block;
+}
+
+/* Text wears text tokens; the swatch beside it carries identity. */
+.viz-key-label {
+  font-family: var(--viz-mono);
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  color: var(--viz-ink-2);
+}
+
+.viz-key-value {
+  font-family: var(--viz-mono);
+  font-size: 10px;
+  color: var(--viz-ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.viz-scale { display: inline-flex; align-items: center; gap: 3px; }
+.viz-scale-step { width: 15px; height: 9px; border-radius: 1px; display: inline-block; }
+.viz-scale-cap {
+  font-family: var(--viz-mono);
+  font-size: 9.5px;
+  color: var(--viz-ink-3);
+  font-variant-numeric: tabular-nums;
+  padding: 0 3px;
+}
+
+/* ---- svg marks --------------------------------------------------------- */
+
+.viz-plot svg { display: block; overflow: visible; }
+
+.chart-grid line {
+  stroke: var(--viz-line-soft);
+  stroke-width: 1;
+  shape-rendering: crispEdges;
+}
+
+.chart-tick {
+  font-family: var(--viz-mono);
+  font-size: 9.5px;
+  fill: var(--viz-ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.chart-rowlabel {
+  font-family: var(--viz-mono);
+  font-size: 10.5px;
+  fill: var(--viz-ink-2);
+}
+
+.chart-value {
+  font-family: var(--viz-mono);
+  font-size: 10.5px;
+  fill: var(--viz-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.chart-inlay {
+  font-family: var(--viz-mono);
+  font-size: 10px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.chart-track { fill: #232323; stroke: none; }
+
+/* The scale rule behind a range chart - same hairline weight as the grid. */
+.chart-gridline {
+  stroke: var(--viz-line-soft);
+  stroke-width: 1;
+  shape-rendering: crispEdges;
+}
+
+/* An invisible hit target riding a line. Bigger than the 2px stroke it sits
+   on, so hovering a point does not demand pixel accuracy. */
+.chart-hit { cursor: default; }
+.chart-hit:focus-visible { outline: 2px solid var(--viz-ramp-5); outline-offset: 0; }
+.chart-cell-empty { stroke: none; }
+
+.chart-mark {
+  transition: opacity 0.1s ease;
+  cursor: default;
+}
+.chart-mark:hover, .chart-mark:focus { opacity: 0.78; outline: none; }
+.chart-mark:focus-visible { outline: 2px solid var(--viz-ramp-5); outline-offset: 1px; }
+
+.chart-centre-value {
+  font-family: var(--viz-sans);
+  font-size: 25px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  fill: var(--viz-ink);
+}
+
+.chart-centre-label {
+  font-family: var(--viz-mono);
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  fill: var(--viz-ink-3);
+}
+
+/* ---- tooltip ----------------------------------------------------------- */
+/* Enhances, never gates - every value is also in the table view. */
+
+.viz-tip {
+  position: fixed;
+  z-index: 60;
+  pointer-events: none;
+  background: #0f0f0f;
+  border: 1px solid var(--viz-line);
+  border-radius: 3px;
+  padding: 5px 9px;
+  font-family: var(--viz-mono);
+  font-size: 10.5px;
+  color: var(--viz-ink);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.55);
+  max-width: 320px;
+}
+
+/* ---- table view -------------------------------------------------------- */
+
+.viz-table { display: none; padding: 4px 14px 0; overflow-x: auto; }
+body.tables-open .viz-table { display: block; }
+
+.viz-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--viz-mono);
+  font-size: 10.5px;
+}
+
+.viz-table th, .viz-table td {
+  text-align: left;
+  padding: 5px 9px 5px 0;
+  border-bottom: 1px solid var(--viz-line-soft);
+  white-space: nowrap;
+}
+
+.viz-table thead th {
+  color: var(--viz-ink-3);
+  font-weight: 500;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  font-size: 9.5px;
+  border-bottom-color: var(--viz-line);
+}
+
+.viz-table tbody th { color: var(--viz-ink-2); font-weight: 500; }
+.viz-table tbody td { color: var(--viz-ink); font-variant-numeric: tabular-nums; }
+
+/* ---- responsive -------------------------------------------------------- */
+
+@media (max-width: 1000px) {
+  .viz-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* Drop to one column while a half-width card would still be wider than the
+   560px charts it holds - squeezing them below that shrinks their type. */
+@media (max-width: 1180px) {
+  .viz-board { column-count: 1; }
+}
+
+@media (max-width: 760px) {
+  .viz-tiles { grid-template-columns: minmax(0, 1fr); }
+  .viz-masthead-inner { flex-wrap: wrap; }
+  .viz-plot { overflow-x: auto; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; }
+}
+
+/* ---- printed report ------------------------------------------------------
+ * `Export PDF` is Chrome's own print-to-PDF. Everything interactive drops away
+ * and two pieces of print-only furniture take its place: a masthead on the
+ * first sheet, and a footer that repeats on every sheet because Chrome paints a
+ * fixed element once per page.
+ *
+ * The board keeps its dark palette in print. Every colour here is a token and
+ * could be remapped, but the categorical slots and the sequential ramp were
+ * validated against --viz-surface for CVD separation and contrast, and the
+ * ramp's light end (#08D7C3) fails on white - re-validating the palette is its
+ * own piece of work, not a side effect of adding an export button.
+ * print-color-adjust puts those fills in the PDF whether or not the reader has
+ * "Background graphics" ticked.
+ * ------------------------------------------------------------------------ */
+
+.viz-print-head,
+.viz-print-foot { display: none; }
+
+@media print {
+  @page {
+    size: A4 landscape;
+    /* Zero, because the report supplies its own margins. A page margin would
+       print as a white frame around a dark document. */
+    margin: 0;
+  }
+
+  html,
+  body {
+    background: var(--viz-ground);
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Controls describe the slice; the printed header states it instead. */
+  .viz-masthead,
+  .viz-filters,
+  .viz-import,
+  .viz-flash,
+  .viz-tip { display: none !important; }
+
+  .viz-print-head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+    margin: 0;
+    padding: 12mm 12mm 9px;
+    border-bottom: 1px solid var(--viz-line);
+  }
+
+  .viz-print-brand { display: flex; flex-direction: column; gap: 3px; }
+
+  .viz-print-head .viz-wordmark { font-size: 21px; }
+
+  .viz-print-sub {
+    font-family: var(--viz-mono);
+    font-size: 9.5px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--viz-ink-3);
+  }
+
+  .viz-print-meta {
+    display: flex;
+    gap: 26px;
+    margin: 0;
+    text-align: right;
+  }
+
+  .viz-print-meta-item { display: flex; flex-direction: column; gap: 2px; }
+
+  .viz-print-meta dt {
+    font-family: var(--viz-mono);
+    font-size: 8.5px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--viz-ink-3);
+  }
+
+  .viz-print-meta dd {
+    margin: 0;
+    font-family: var(--viz-mono);
+    font-size: 10.5px;
+    color: var(--viz-ink-2);
+  }
+
+  /* A4 landscape lays out at ~1123 CSS px, inside the 1180px breakpoint that
+     drops the board to one column and well past the 1000px one. Neither
+     applies to paper, so both are restated here rather than inherited. */
+  .viz-board {
+    max-width: none;
+    padding: 10px 12mm 18mm;
+    column-count: 2;
+    column-gap: 12mm;
+  }
+
+  .viz-tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+  /* A card cut across a page break loses its head and its legend together. */
+  .viz-board > .viz-card,
+  .viz-card-wide,
+  .viz-tiles,
+  .viz-plot { break-inside: avoid; }
+
+  .viz-section { break-after: avoid; }
+
+  /* The buttons are dead ink on paper; the count beside them is not - it is
+     the only thing telling the reader a list was longer than the card. */
+  .viz-page-btn { display: none !important; }
+
+  .viz-print-foot {
+    display: flex;
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    align-items: baseline;
+    justify-content: space-between;
+    padding: 4mm 12mm;
+    border-top: 1px solid var(--viz-line);
+    background: var(--viz-ground);
+  }
+
+  .viz-print-foot .viz-wordmark { font-size: 12px; }
+
+  .viz-print-foot-span {
+    font-family: var(--viz-mono);
+    font-size: 9px;
+    letter-spacing: 0.06em;
+    color: var(--viz-ink-3);
+  }
+}

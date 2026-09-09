@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <RootNamespace>Scrapeless.Detector</RootNamespace>
+    <PackageId>Scrapeless.Detector</PackageId>
+    <Version>1.0.1</Version>
+    <Description>Ask a page whether it is protected — drives Chrome with the Scrapeless Anti-Bot Detector extension loaded.</Description>
+  </PropertyGroup>
+
+</Project>

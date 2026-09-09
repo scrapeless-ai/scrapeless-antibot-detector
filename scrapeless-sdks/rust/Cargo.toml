@@ -1,0 +1,20 @@
+[package]
+name = "scrapeless-detector"
+version = "1.0.1"
+edition = "2021"
+license = "NPOSL-3.0"
+description = "Ask a page whether it is protected — drives Chrome with the Scrapeless Anti-Bot Detector extension loaded."
+repository = "https://github.com/pedro-scrapeless/scrapeless-antibot-detector"
+keywords = ["antibot", "captcha", "fingerprint", "scraping", "detection"]
+
+[dependencies]
+serde_json = "1"
+# The browser-driving half. Off by default so the result and category layer —
+# the part that must never drift from the other SDKs — builds and tests with
+# nothing but serde_json.
+chromiumoxide = { version = "0.5", optional = true }
+futures = { version = "0.3", optional = true }
+
+[features]
+default = []
+browser = ["dep:chromiumoxide", "dep:futures"]

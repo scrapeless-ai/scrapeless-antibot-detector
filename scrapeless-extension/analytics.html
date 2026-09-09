@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title data-i18n="vizPageTitle">Scrapeless Analytics</title>
+  <link rel="stylesheet" href="presentation/foundations.css">
+  <link rel="stylesheet" href="presentation/analytics.css">
+</head>
+<body>
+
+<header class="viz-masthead">
+  <div class="viz-masthead-inner">
+    <a class="viz-brand" href="https://www.scrapeless.com" target="_blank" rel="noopener noreferrer" title="scrapeless.com">
+      <img src="brand/toolbar-32.png" alt="" width="28" height="28" class="viz-brand-mark">
+      <div class="viz-brand-text">
+        <span class="viz-wordmark">scrape<em>less</em></span>
+        <span class="viz-brand-sub" data-i18n="vizBrandSub">Detection analytics</span>
+      </div>
+    </a>
+    <div class="viz-masthead-meta">
+      <span id="vizSpan" class="viz-span"></span>
+      <button type="button" id="vizTables" class="viz-btn" aria-pressed="false" data-i18n="vizBtnShowTables">Show data tables</button>
+      <button type="button" id="vizExport" class="viz-btn" data-i18n="vizBtnExportJson">Export JSON</button>
+      <button type="button" id="vizPrint" class="viz-btn viz-btn-accent" data-i18n="vizBtnExportPdf">Export PDF</button>
+    </div>
+  </div>
+</header>
+
+<div id="vizFlash" class="viz-flash" hidden></div>
+
+<!--
+  The printed report's own masthead and running footer. Both are display:none
+  on screen and only exist for `Export PDF`, which is Chrome's print-to-PDF.
+  The footer is position:fixed, which Chrome repeats on every printed page, so
+  the brand and the window under report ride along to the last sheet.
+-->
+<section class="viz-print-head" aria-hidden="true">
+  <div class="viz-print-brand">
+    <span class="viz-wordmark">scrape<em>less</em></span>
+    <span class="viz-print-sub" data-i18n="vizBrandSub">Detection analytics</span>
+  </div>
+  <dl class="viz-print-meta">
+    <div class="viz-print-meta-item"><dt data-i18n="methodLabelWindow">Window</dt><dd id="printSpan">-</dd></div>
+    <div class="viz-print-meta-item"><dt data-i18n="vizMetaFilters">Filters</dt><dd id="printFilters">-</dd></div>
+    <div class="viz-print-meta-item"><dt data-i18n="vizMetaGenerated">Generated</dt><dd id="printStamp">-</dd></div>
+  </dl>
+</section>
+
+<footer class="viz-print-foot" aria-hidden="true">
+  <span class="viz-wordmark">scrape<em>less</em></span>
+  <span id="printFootSpan" class="viz-print-foot-span"></span>
+</footer>
+
+<section class="viz-filters" aria-label="Filters" data-i18n-aria-label="vizMetaFilters">
+  <div class="viz-filter-group">
+    <span class="viz-filter-label" data-i18n="vizFilterRange">Range</span>
+    <div class="viz-seg" role="group" aria-label="Time range" data-i18n-aria-label="vizAriaTimeRange">
+      <button type="button" class="viz-seg-btn is-on" data-span="0" data-i18n="rulesScopeAll">All</button>
+      <button type="button" class="viz-seg-btn" data-span="90">90d</button>
+      <button type="button" class="viz-seg-btn" data-span="30">30d</button>
+      <button type="button" class="viz-seg-btn" data-span="7">7d</button>
+      <button type="button" class="viz-seg-btn" data-span="custom" aria-expanded="false" aria-controls="vizCustomRange" data-i18n="settingsCustomMethod">Custom</button>
+    </div>
+    <!-- Revealed by the Custom segment. Kept out of the bar until asked for:
+         the presets answer most questions, and two date fields sitting there
+         permanently would widen the filter row for a minority case. -->
+    <div id="vizCustomRange" class="viz-range" hidden>
+      <input type="date" id="vizFrom" class="viz-date" aria-label="Range start date" data-i18n-aria-label="vizAriaRangeStart">
+      <span class="viz-range-dash" aria-hidden="true" data-i18n="vizRangeTo">to</span>
+      <input type="date" id="vizTo" class="viz-date" aria-label="Range end date" data-i18n-aria-label="vizAriaRangeEnd">
+      <button type="button" id="vizRangeClear" class="viz-range-clear" title="Clear the custom range" data-i18n-title="vizClearRangeTitle" data-i18n="btnClear">Clear</button>
+    </div>
+  </div>
+
+  <div class="viz-filter-group">
+    <span class="viz-filter-label" data-i18n="ruleFieldCategory">Category</span>
+    <div class="viz-seg" role="group" aria-label="Category" data-i18n-aria-label="ruleFieldCategory">
+      <button type="button" class="viz-seg-btn is-on" data-taxon="all" data-i18n="rulesScopeAll">All</button>
+      <button type="button" class="viz-seg-btn" data-taxon="antibot" data-i18n="categoryAntibot">Anti-Bot</button>
+      <button type="button" class="viz-seg-btn" data-taxon="captcha" data-i18n="categoryCaptcha">Captcha</button>
+      <button type="button" class="viz-seg-btn" data-taxon="fingerprint" data-i18n="categoryFingerprint">Fingerprint</button>
+    </div>
+  </div>
+
+  <div class="viz-filter-group viz-filter-grow">
+    <span class="viz-filter-label" data-i18n="advancedFilterSite">Site</span>
+    <input type="search" id="vizSearch" class="viz-search" placeholder="Filter by hostname or title" data-i18n-placeholder="vizSearchPlaceholder" aria-label="Filter by hostname or title" data-i18n-aria-label="vizSearchPlaceholder">
+  </div>
+</section>
+
+<section id="vizImport" class="viz-import" hidden>
+  <div id="vizDrop" class="viz-drop">
+    <p class="viz-drop-line"><span data-i18n="vizDropLead">Drop a</span> <strong data-i18n="vizHistoryExport">history export</strong> <span data-i18n="vizDropTrail">here, or</span>
+      <label class="viz-drop-pick"><span data-i18n="vizDropPick">choose a file</span><input type="file" id="vizFile" accept="application/json,.json"></label>
+    </p>
+    <p class="viz-drop-note"><span data-i18n="vizDropNoteLead">Opened over</span> <code>file://</code> <span data-i18n="vizDropNoteTrail">the page cannot reach extension storage. Any history export from the History pane works.</span></p>
+  </div>
+</section>
+
+<section id="vizEmpty" class="viz-empty" hidden>
+  <p class="viz-empty-title" data-i18n="vizEmptyTitle">Nothing to chart yet</p>
+  <p id="vizEmptyNote" class="viz-empty-note"></p>
+</section>
+
+<main id="vizBoard" class="viz-board" hidden>
+
+  <section class="viz-tiles" aria-label="Headline figures" data-i18n-aria-label="vizAriaHeadline">
+    <div class="viz-tile">
+      <span class="viz-tile-label" data-i18n="vizTilePagesScanned">Pages scanned</span>
+      <span class="viz-tile-value" id="tilePages">0</span>
+    </div>
+    <div class="viz-tile">
+      <span class="viz-tile-label" data-i18n="statDetections">Detections</span>
+      <span class="viz-tile-value" id="tileDetections">0</span>
+    </div>
+    <div class="viz-tile">
+      <span class="viz-tile-label" data-i18n="vizTileVendorsSeen">Vendors seen</span>
+      <span class="viz-tile-value" id="tileVendors">0</span>
+    </div>
+    <div class="viz-tile">
+      <span class="viz-tile-label" data-i18n="vizTileDistinctSites">Distinct sites</span>
+      <span class="viz-tile-value" id="tileSites">0</span>
+    </div>
+    <div class="viz-tile">
+      <span class="viz-tile-label" data-i18n="vizTileProtectedRate">Protected rate</span>
+      <span class="viz-tile-value" id="tileRate">0%</span>
+      <span class="viz-tile-note" id="tileRateNote"></span>
+    </div>
+    <div class="viz-tile">
+      <span class="viz-tile-label" data-i18n="vizTilePerPage">Per page</span>
+      <span class="viz-tile-value" id="tilePerPage">0</span>
+      <span class="viz-tile-note" id="tilePerPageNote"></span>
+    </div>
+    <div class="viz-tile">
+      <span class="viz-tile-label" data-i18n="vizTileLayeredDefence">Layered defence</span>
+      <span class="viz-tile-value" id="tileLayered">0%</span>
+      <span class="viz-tile-note" id="tileLayeredNote"></span>
+    </div>
+    <div class="viz-tile">
+      <span class="viz-tile-label" data-i18n="vizTileBusiestDay">Busiest day</span>
+      <span class="viz-tile-value" id="tileBusiest">&mdash;</span>
+      <span class="viz-tile-note" id="tileBusiestNote"></span>
+    </div>
+  </section>
+
+  <!-- ============ Over time ============ -->
+  <h2 class="viz-section" data-i18n="vizSectionOverTime">Over time</h2>
+
+  <section class="viz-card viz-card-wide" id="cardTimeline">
+    <div class="viz-card-head">
+      <h3 class="viz-card-title" data-i18n="vizCardDetectionsPerDay">Detections per day</h3>
+      <div class="viz-legend" id="legendTimeline"></div>
+    </div>
+    <div class="viz-plot viz-plot-scroll" id="chartTimeline"></div>
+    <div class="viz-table" id="tableTimeline"></div>
+  </section>
+
+  <section class="viz-card" id="cardCoverage">
+    <div class="viz-card-head">
+      <h3 class="viz-card-title" data-i18n="vizCardCatalogueCoverage">Catalogue coverage</h3>
+      <span class="viz-card-note" data-i18n="vizNoteDistinctVendors">distinct vendors seen, cumulative</span>
+    </div>
+    <div class="viz-plot" id="chartCoverage"></div>
+    <div class="viz-table" id="tableCoverage"></div>
+  </section>
+
+  <section class="viz-card" id="cardRate">
+    <div class="viz-card-head">
+      <h3 class="viz-card-title" data-i18n="vizCardDetectionRate">Detection rate</h3>
+      <span class="viz-card-note" data-i18n="vizNoteShareOfScans">share of scans that found something</span>
+    </div>
+    <div class="viz-plot" id="chartRate"></div>
+    <div class="viz-table" id="tableRate"></div>
+  </section>
+
+  <!-- ============ What is out there ============ -->
+  <h2 class="viz-section" data-i18n="vizSectionWhatIsOutThere">What is out there</h2>
+
+  <section class="viz-card" id="cardTaxonomy">
+    <div class="viz-card-head">
+      <h3 class="viz-card-title" data-i18n="vizCardCategorySplit">Category split</h3>
+    </div>
+    <div class="viz-donut-row">
+      <div class="viz-plot" id="chartTaxonomy"></div>
+      <div class="viz-legend viz-legend-stack" id="legendTaxonomy"></div>
+    </div>
+    <div class="viz-table" id="tableTaxonomy"></div>
+  </section>
+
+  <section class="viz-card" id="cardVendors">
+    <div class="viz-card-head">
+      <h3 class="viz-card-title" data-i18n="vizCardTopVendors">Top vendors</h3>
+      <div class="viz-legend" id="legendVendors"></div>
+      <div class="viz-pager" id="pagerVendors" hidden></div>
+    </div>
+    <div class="viz-plot" id="chartVendors"></div>
+    <div class="viz-table" id="tableVendors"></div>
+  </section>
+
+  <section class="viz-card" id="cardGrades">
+    <div class="viz-card-head">
+      <h3 class="viz-card-title" data-i18n="vizCardBypassDifficulty">Bypass difficulty</h3>
+    </div>
+    <div class="viz-plot" id="chartGrades"></div>
+    <div class="viz-legend viz-legend-stack" id="legendGrades"></div>
+    <div class="viz-table" id="tableGrades"></div>
+  </section>
+
+  <section class="viz-card" id="cardLayering">
+    <div class="viz-card-head">
+      <h3 class="viz-card-title" data-i18n="vizTileLayeredDefence">Layered defence</h3>
+      <span class="viz-card-note" data-i18n="vizNoteCategoriesStacked">categories stacked on one page</span>
+    </div>
+    <div class="viz-plot" id="chartLayering"></div>
+    <div class="viz-table" id="tableLayering"></div>
+  </section>
+
+  <section class="viz-card viz-card-wide" id="cardPairs">
+    <div class="viz-card-head">
+      <h3 class="viz-card-title" data-i18n="vizCardSeenTogether">Seen together</h3>
+      <span class="viz-card-note" data-i18n="vizNoteVendorPairs">vendor pairs on one page</span>
+      <div class="viz-pager" id="pagerPairs" hidden></div>
+    </div>
+    <div class="viz-plot viz-plot-scroll" id="chartPairs"></div>
+    <div class="viz-table" id="tablePairs"></div>
+  </section>
+
+  <!-- ============ Where ============ -->
+  <h2 class="viz-section" data-i18n="vizSectionWhere">Where</h2>
+
+  <section class="viz-card" id="cardSites">
+    <div class="viz-card-head">
+      <h3 class="viz-card-title" data-i18n="vizCardMostProtectedSites">Most protected sites</h3>
+      <span class="viz-card-note" data-i18n="vizNoteDetectionsPerHostname">detections per hostname</span>
+      <div class="viz-pager" id="pagerSites" hidden></div>
+    </div>
+    <div class="viz-plot" id="chartSites"></div>
+    <div class="viz-table" id="tableSites"></div>
+  </section>
+
+  <section class="viz-card" id="cardSuffixes">
+    <div class="viz-card-head">
+      <h3 class="viz-card-title" data-i18n="vizCardDomainEndings">Domain endings</h3>
+      <span class="viz-card-note" data-i18n="vizNoteDetectionsByLastLabel">detections by last label</span>
+      <div class="viz-pager" id="pagerSuffixes" hidden></div>
+    </div>
+    <div class="viz-plot" id="chartSuffixes"></div>
+    <div class="viz-table" id="tableSuffixes"></div>
+  </section>
+
+  <section class="viz-card viz-card-wide" id="cardHeat">
+    <div class="viz-card-head">
+      <h3 class="viz-card-title" data-i18n="vizCardWhenYouScan">When you scan</h3>
+      <div class="viz-scale" id="legendHeat" aria-label="Scale" data-i18n-aria-label="vizAriaScale"></div>
+    </div>
+    <div class="viz-plot viz-plot-scroll" id="chartHeat"></div>
+    <div class="viz-table" id="tableHeat"></div>
+  </section>
+
+  <!-- ============ How they are caught ============ -->
+  <h2 class="viz-section" data-i18n="vizSectionHowCaught">How they are caught</h2>
+
+  <section class="viz-card" id="cardSignals">
+    <div class="viz-card-head">
+      <h3 class="viz-card-title" data-i18n="vizCardSignalTypes">Signal types</h3>
+      <span class="viz-card-note" data-i18n="vizNoteWhatGaveAway">what gave each vendor away</span>
+      <div class="viz-pager" id="pagerSignals" hidden></div>
+    </div>
+    <div class="viz-plot" id="chartSignals"></div>
+    <div class="viz-table" id="tableSignals"></div>
+  </section>
+
+  <section class="viz-card" id="cardEvidence">
+    <div class="viz-card-head">
+      <h3 class="viz-card-title" data-i18n="vizCardMostMatchedEvidence">Most-matched evidence</h3>
+      <span class="viz-card-note" data-i18n="vizNoteValueThatFired">the value that fired</span>
+      <div class="viz-pager" id="pagerEvidence" hidden></div>
+    </div>
+    <div class="viz-plot" id="chartEvidence"></div>
+    <div class="viz-table" id="tableEvidence"></div>
+  </section>
+
+  <section class="viz-card" id="cardMatrix">
+    <div class="viz-card-head">
+      <h3 class="viz-card-title" data-i18n="vizCardSignalTypeByCategory">Signal type by category</h3>
+      <div class="viz-scale" id="legendMatrix" aria-label="Scale" data-i18n-aria-label="vizAriaScale"></div>
+    </div>
+    <div class="viz-plot viz-plot-scroll" id="chartMatrix"></div>
+    <div class="viz-table" id="tableMatrix"></div>
+  </section>
+
+  <section class="viz-card" id="cardSpread">
+    <div class="viz-card-head">
+      <h3 class="viz-card-title" data-i18n="vizCardConfidenceSpread">Confidence spread</h3>
+      <span class="viz-card-note" data-i18n="vizNoteLowToHigh">low to high, average marked</span>
+    </div>
+    <div class="viz-plot" id="chartSpread"></div>
+    <div class="viz-table" id="tableSpread"></div>
+  </section>
+
+  <section class="viz-card" id="cardConfidence">
+    <div class="viz-card-head">
+      <h3 class="viz-card-title" data-i18n="vizCardConfidenceDistribution">Confidence distribution</h3>
+      <span class="viz-card-note" data-i18n="vizNoteDetectionsPerBand">detections per 10% band</span>
+    </div>
+    <div class="viz-plot" id="chartConfidence"></div>
+    <div class="viz-table" id="tableConfidence"></div>
+  </section>
+
+  <section class="viz-card" id="cardPerPage">
+    <div class="viz-card-head">
+      <h3 class="viz-card-title" data-i18n="vizCardStackDepth">Stack depth</h3>
+      <span class="viz-card-note" data-i18n="vizNoteScansByDetections">scans by number of detections</span>
+    </div>
+    <div class="viz-plot" id="chartPerPage"></div>
+    <div class="viz-table" id="tablePerPage"></div>
+  </section>
+
+</main>
+
+<div id="vizTip" class="viz-tip" role="status" hidden></div>
+
+<script src="src/foundation/locale-runtime.js"></script>
+<script src="src/console/analytics/data-frame.js"></script>
+<script src="src/console/analytics/chart-kit.js"></script>
+<script src="src/console/analytics/presenter.js"></script>
+</body>
+</html>

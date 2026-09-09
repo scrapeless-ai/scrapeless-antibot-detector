@@ -1,0 +1,1118 @@
+/*
+ * Console control deck
+ * --------------------
+ * Final presentation layer for interactive surfaces that are injected after
+ * the shell: native choices, Rules helpers, icon/colour tools and Settings
+ * sub-controls. It deliberately loads after console-theme.css so every view
+ * shares one control grammar instead of inheriting per-feature legacy cards.
+ */
+
+/* ============================================================
+   CHOICE RAIL — one popup for every native select
+   ============================================================ */
+
+.console-choice-source {
+  display: none !important;
+}
+
+.console-choice {
+  position: relative;
+  display: block;
+  width: 100%;
+  min-width: 0;
+  color: var(--con-ink);
+  font-family: var(--con-mono);
+}
+
+.console-choice-trigger {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 16px;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  min-height: 30px;
+  padding: 0 8px 0 10px;
+  border: 1px solid var(--con-line);
+  border-left: 2px solid var(--con-line-strong);
+  border-radius: 2px;
+  background: var(--con-row-b);
+  box-shadow: none;
+  color: var(--con-ink);
+  font: 400 13px/1 var(--con-mono);
+  text-align: left;
+  cursor: pointer;
+}
+
+.console-choice-trigger:hover {
+  border-color: var(--con-line-strong);
+  border-left-color: var(--con-accent);
+  background: #2c2c2c;
+}
+
+.console-choice-trigger:focus-visible,
+.console-choice.is-open .console-choice-trigger {
+  outline: 1px solid var(--con-accent);
+  outline-offset: 1px;
+  border-left-color: var(--con-accent);
+}
+
+.console-choice-trigger:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.console-choice-value {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.console-choice-marker {
+  position: relative;
+  width: 14px;
+  height: 14px;
+  justify-self: end;
+}
+
+.console-choice-marker::before,
+.console-choice-marker::after {
+  content: "";
+  position: absolute;
+  left: 3px;
+  width: 7px;
+  height: 1px;
+  background: var(--con-ink-3);
+  transition: transform 0.12s ease, background 0.12s ease;
+}
+
+/* Two bars offset along x, mirrored: a chevron that points down, at the menu
+   it opens. Offset along y instead — as this was — draws a '>' pointing at
+   nothing, on every select in the extension. */
+.console-choice-marker::before {
+  left: 1px;
+  top: 7px;
+  transform: rotate(40deg);
+}
+
+.console-choice-marker::after {
+  left: 6px;
+  top: 7px;
+  transform: rotate(-40deg);
+}
+
+.console-choice.is-open .console-choice-marker::before {
+  transform: rotate(-40deg);
+  background: var(--con-accent);
+}
+
+.console-choice.is-open .console-choice-marker::after {
+  transform: rotate(40deg);
+  background: var(--con-accent);
+}
+
+.console-choice-menu {
+  position: fixed;
+  z-index: 20050;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 3px 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  border: 1px solid var(--con-line-strong);
+  border-top: 2px solid var(--con-accent);
+  border-radius: 2px;
+  background: #171717;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.68);
+  color: var(--con-ink);
+}
+
+.console-choice-menu[hidden] {
+  display: none;
+}
+
+.console-choice-group + .console-choice-group {
+  margin-top: 3px;
+  padding-top: 3px;
+  border-top: 1px solid var(--con-line);
+}
+
+.console-choice-group-label {
+  min-height: 22px;
+  padding: 0 9px 0 34px;
+  color: var(--con-ink-3);
+  font: 600 10px/22px var(--con-mono);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.console-choice-option {
+  position: relative;
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) 12px;
+  align-items: center;
+  min-height: 28px;
+  margin: 0;
+  padding: 0 9px 0 7px;
+  border: 0;
+  border-left: 2px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  color: var(--con-ink-2);
+  font: 400 12.5px/1.3 var(--con-mono);
+  cursor: pointer;
+}
+
+.console-choice-option::before {
+  content: attr(data-sequence);
+  color: var(--con-ink-3);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.62;
+}
+
+.console-choice-option::after {
+  content: "";
+  justify-self: end;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: transparent;
+}
+
+.console-choice-option:hover,
+.console-choice-option.is-active {
+  border-left-color: var(--con-accent);
+  background: #292929;
+  color: var(--con-ink);
+}
+
+.console-choice-option.is-selected {
+  border-left-color: var(--con-accent);
+  background: color-mix(in srgb, var(--con-accent) 11%, #171717);
+  color: var(--con-accent-text);
+  font-weight: 600;
+}
+
+.console-choice-option.is-selected::after {
+  background: var(--con-accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--con-accent) 18%, transparent);
+}
+
+.console-choice-option.is-disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+
+/* Metadata choices sit on the same dotted ruler as text values. */
+.rule-modal-body .form-group > .console-choice {
+  align-self: baseline;
+}
+
+.rule-modal-body .console-choice-trigger {
+  min-height: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-bottom: 1px dotted var(--con-line-strong);
+  border-radius: 0;
+  background: transparent;
+  font: 400 13.5px/22px var(--con-mono);
+}
+
+.rule-modal-body .console-choice-trigger:hover {
+  border-bottom-color: var(--con-ink-3);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.rule-modal-body .console-choice-trigger:focus-visible,
+.rule-modal-body .console-choice.is-open .console-choice-trigger {
+  outline: 0;
+  border-bottom: 1px solid var(--con-cat, var(--con-accent));
+}
+
+.base-modal-content .console-choice-trigger,
+#advancedTab .console-choice-trigger {
+  min-height: 32px;
+}
+
+/* ============================================================
+   CONDITION RAIL — WINDOW predicates use the same grammar
+   ============================================================ */
+
+.condition-dropdown {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+}
+
+.condition-dropdown-trigger,
+.inline-condition-dropdown .condition-dropdown-trigger {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 16px;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  min-height: 30px;
+  padding: 0 8px 0 10px;
+  border: 1px solid var(--con-line);
+  border-left: 2px solid var(--con-line-strong);
+  border-radius: 2px;
+  background: var(--con-row-b);
+  box-shadow: none;
+  color: var(--con-ink);
+  font: 400 12.5px/1 var(--con-mono);
+  text-align: left;
+  cursor: pointer;
+}
+
+.condition-dropdown-trigger:hover,
+.inline-condition-dropdown .condition-dropdown-trigger:hover {
+  border-color: var(--con-line-strong);
+  border-left-color: var(--con-accent);
+  background: #2c2c2c;
+}
+
+.condition-dropdown-trigger:focus-visible,
+.condition-dropdown.open .condition-dropdown-trigger,
+.inline-condition-dropdown.open .condition-dropdown-trigger {
+  outline: 1px solid var(--con-accent);
+  outline-offset: 1px;
+  border-color: var(--con-line-strong);
+  border-left-color: var(--con-accent);
+  background: var(--con-row-b);
+  box-shadow: none;
+}
+
+.condition-dropdown-trigger .dropdown-chevron {
+  width: 10px;
+  height: 10px;
+  justify-self: end;
+  color: var(--con-ink-3);
+  transition: transform 0.12s ease;
+}
+
+.condition-dropdown.open .dropdown-chevron {
+  transform: rotate(180deg);
+  color: var(--con-accent);
+}
+
+.inline-condition-dropdown {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.method-item .input-row > .inline-condition-dropdown {
+  grid-area: value;
+  width: 100%;
+  min-width: 0;
+}
+
+.inline-condition-dropdown .condition-dropdown-trigger {
+  min-height: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-bottom: 1px dotted var(--con-line-strong);
+  border-radius: 0;
+  background: transparent;
+}
+
+.inline-condition-dropdown .condition-dropdown-trigger:hover,
+.inline-condition-dropdown.open .condition-dropdown-trigger {
+  border: 0;
+  border-bottom: 1px solid var(--con-cat, var(--con-accent));
+  background: rgba(255, 255, 255, 0.02);
+  box-shadow: none;
+}
+
+.condition-dropdown-menu,
+.inline-condition-dropdown .condition-dropdown-menu {
+  display: none;
+  position: fixed;
+  z-index: 20060;
+  box-sizing: border-box;
+  max-height: 260px;
+  margin: 0;
+  padding: 3px 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  border: 1px solid var(--con-line-strong);
+  border-top: 2px solid var(--con-accent);
+  border-radius: 2px;
+  background: #171717;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.68);
+}
+
+.condition-dropdown.open .condition-dropdown-menu {
+  display: block;
+}
+
+.condition-group,
+.condition-group:not(:last-child) {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.condition-group + .condition-group {
+  margin-top: 3px;
+  padding-top: 3px;
+  border-top: 1px solid var(--con-line);
+}
+
+.condition-group-label,
+.inline-condition-dropdown .condition-group-label {
+  min-height: 22px;
+  margin: 0;
+  padding: 0 9px 0 34px;
+  color: var(--con-ink-3);
+  font: 600 10px/22px var(--con-mono);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.condition-dropdown .condition-option,
+.inline-condition-dropdown .condition-option {
+  position: relative;
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) 12px;
+  align-items: center;
+  gap: 0;
+  min-height: 28px;
+  margin: 0;
+  padding: 0 9px 0 7px;
+  border: 0;
+  border-left: 2px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--con-ink-2);
+  font: 400 12.5px/1.3 var(--con-mono);
+  cursor: pointer;
+}
+
+.condition-dropdown .condition-option::before {
+  content: attr(data-sequence);
+  color: var(--con-ink-3);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.62;
+}
+
+.condition-dropdown .condition-option::after {
+  content: "";
+  justify-self: end;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: transparent;
+}
+
+.condition-dropdown .condition-option:hover,
+.condition-dropdown .condition-option.is-active {
+  border-left-color: var(--con-accent);
+  background: #292929;
+  color: var(--con-ink);
+}
+
+.condition-dropdown .condition-option.selected {
+  border-left-color: var(--con-accent);
+  background: color-mix(in srgb, var(--con-accent) 11%, #171717);
+  color: var(--con-accent-text);
+  font-weight: 600;
+}
+
+.condition-dropdown .condition-option.selected::after {
+  background: var(--con-accent);
+}
+
+/* ============================================================
+   RULES WORKBENCH — helper bodies become console registers
+   ============================================================ */
+
+:is(
+  #domHelperModal,
+  #windowHelperModal,
+  #regexHelperModal,
+  #regexExplanationModal,
+  #wholeWordExplanationModal,
+  #caseSensitiveExplanationModal,
+  #conditionHelperModal,
+  #networkRequestModal,
+  #methodHelpModal,
+  #wholeWordHelperModal,
+  #caseSensitiveHelperModal,
+  #advancedColorModal,
+  .icon-picker-modal
+) .rule-modal-body {
+  padding: 0;
+  background: var(--con-row-a);
+}
+
+.dom-helper-steps {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  border-bottom: 1px solid var(--con-line);
+  background: var(--con-band);
+}
+
+.dom-helper-steps.three-steps {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.dom-helper-steps::before,
+.dom-helper-steps::after {
+  display: none;
+}
+
+.dom-step {
+  position: relative;
+  z-index: auto;
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  align-items: center;
+  justify-items: stretch;
+  gap: 5px;
+  min-width: 0;
+  min-height: 34px;
+  padding: 0 8px;
+  border-right: 1px solid var(--con-line);
+  background: transparent;
+}
+
+.dom-step:last-child {
+  border-right: 0;
+}
+
+.dom-step-number {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: 1px solid var(--con-line-strong);
+  border-radius: 2px;
+  background: var(--con-row-a);
+  color: var(--con-ink-3);
+  font: 600 10px/1 var(--con-mono);
+  box-shadow: none;
+}
+
+.dom-step.active {
+  background: color-mix(in srgb, var(--con-accent) 8%, var(--con-band));
+  box-shadow: inset 0 -2px 0 var(--con-accent);
+}
+
+.dom-step.active .dom-step-number,
+.dom-step.completed .dom-step-number {
+  border-color: var(--con-accent);
+  border-radius: 2px;
+  background: var(--con-accent);
+  color: #151515;
+}
+
+.dom-step.completed .dom-step-number::after {
+  width: 7px;
+  height: 4px;
+  border-width: 0 0 1.5px 1.5px;
+}
+
+.dom-step-label {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--con-ink-3);
+  font: 600 9.5px/1.25 var(--con-mono);
+  letter-spacing: 0.08em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.dom-step.active .dom-step-label {
+  color: var(--con-accent-text);
+}
+
+.step-contextual-tip {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  align-items: start;
+  gap: 7px;
+  margin: 0;
+  padding: 8px 12px;
+  border: 0;
+  border-bottom: 1px solid var(--con-line);
+  border-left: 3px solid var(--con-amber);
+  border-radius: 0;
+  background: color-mix(in srgb, var(--con-amber) 7%, var(--con-row-a));
+  box-shadow: none;
+}
+
+.step-contextual-tip .tip-icon {
+  width: 14px;
+  height: 14px;
+  margin-top: 2px;
+  color: var(--con-amber);
+}
+
+.step-contextual-tip .tip-content {
+  color: var(--con-ink-3);
+  font: 400 12px/1.45 var(--con-sans);
+}
+
+.step-contextual-tip .tip-content strong {
+  color: var(--con-amber);
+  font: 600 10px/1 var(--con-mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.dom-step-content,
+.dom-suggestions-section,
+.dom-custom-section {
+  margin: 0 !important;
+  padding: 10px 12px;
+  border: 0;
+  border-bottom: 1px solid var(--con-line);
+  border-radius: 0;
+  background: transparent;
+}
+
+.dom-step-content h4,
+.dom-suggestions-section h4,
+.dom-custom-section h4 {
+  margin: 0 0 7px !important;
+  color: var(--con-ink-3) !important;
+  font: 600 10.5px/1.2 var(--con-mono) !important;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.dom-custom-section > p {
+  margin: 0 0 8px !important;
+  color: var(--con-ink-3) !important;
+  font: 400 12px/1.4 var(--con-sans) !important;
+}
+
+#domKeywordInput,
+#windowKeywordInput,
+#regexKeywordInput,
+#wholeWordKeywordInput,
+#caseSensitiveKeywordInput,
+#customMethodInput,
+#networkUrlPattern,
+#networkCustomMethod {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 30px;
+  padding: 0 8px;
+  border: 1px solid var(--con-line);
+  border-left: 2px solid var(--con-accent);
+  border-radius: 2px;
+  background: var(--con-row-b);
+  box-shadow: none;
+  color: var(--con-ink);
+  font: 400 12.5px/1.4 var(--con-mono);
+}
+
+:is(
+  #domKeywordInput,
+  #windowKeywordInput,
+  #regexKeywordInput,
+  #wholeWordKeywordInput,
+  #caseSensitiveKeywordInput,
+  #customMethodInput,
+  #networkUrlPattern,
+  #networkCustomMethod
+):focus {
+  outline: 1px solid var(--con-accent);
+  outline-offset: 1px;
+  border-color: var(--con-line-strong);
+  border-left-color: var(--con-accent);
+  box-shadow: none;
+}
+
+.dom-templates {
+  display: block;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--con-line);
+  border-radius: 0;
+  background: var(--con-row-a);
+  overflow: hidden;
+}
+
+.suggestions-empty-state {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  grid-template-areas:
+    "glyph title"
+    "glyph hint"
+    "examples examples";
+  gap: 2px 8px;
+  margin: 0;
+  padding: 10px 11px;
+  border: 0;
+  border-left: 3px solid var(--con-line-strong);
+  border-radius: 0;
+  background: var(--con-row-b);
+  text-align: left;
+}
+
+.suggestions-empty-state .empty-icon {
+  grid-area: glyph;
+  width: 16px;
+  height: 16px;
+  margin: 1px 0 0;
+  color: var(--con-ink-3);
+}
+
+.suggestions-empty-state .empty-title {
+  grid-area: title;
+  color: var(--con-ink-2);
+  font: 600 11px/1.35 var(--con-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.suggestions-empty-state .empty-hint {
+  grid-area: hint;
+  color: var(--con-ink-3);
+  font: 400 12px/1.4 var(--con-sans);
+}
+
+.suggestions-empty-state .empty-examples {
+  grid-area: examples;
+  margin-top: 5px;
+  color: var(--con-ink-3);
+  font: 400 10.5px/1.45 var(--con-mono);
+}
+
+.suggestions-empty-state code,
+.rule-modal-body code {
+  border: 0;
+  border-bottom: 1px dotted var(--con-line-strong);
+  border-radius: 0;
+  background: transparent;
+  color: var(--con-accent-text);
+  font-family: var(--con-mono);
+}
+
+.dom-suggestion,
+.window-suggestion,
+.regex-pattern,
+#conditionHelperModal .dom-templates > .condition-option {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 3px 10px;
+  margin: 0;
+  padding: 7px 9px;
+  border: 0;
+  border-bottom: 1px solid var(--con-line);
+  border-left: 3px solid transparent;
+  border-radius: 0;
+  background: var(--con-row-a);
+  box-shadow: none;
+  color: var(--con-ink-2);
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+}
+
+.dom-suggestion:nth-child(even),
+.window-suggestion:nth-child(even),
+.regex-pattern:nth-child(even),
+#conditionHelperModal .dom-templates > .condition-option:nth-child(even) {
+  background: var(--con-row-b);
+}
+
+.dom-suggestion:last-child,
+.window-suggestion:last-child,
+.regex-pattern:last-child,
+#conditionHelperModal .dom-templates > .condition-option:last-child {
+  border-bottom: 0;
+}
+
+.dom-suggestion:hover,
+.window-suggestion:hover,
+.dom-suggestion:focus-visible,
+.window-suggestion:focus-visible,
+.regex-pattern:hover,
+#conditionHelperModal .dom-templates > .condition-option:hover {
+  transform: none;
+  border-color: var(--con-accent);
+  background: #303030;
+  box-shadow: none;
+  color: var(--con-ink);
+}
+
+.dom-suggestion-selector,
+.window-suggestion-property,
+.regex-pattern .template-code,
+#conditionHelperModal .template-code {
+  color: var(--con-accent-text);
+  font: 500 12.5px/1.35 var(--con-mono);
+}
+
+.dom-suggestion-label,
+.window-suggestion-label,
+.regex-pattern .template-description,
+#conditionHelperModal .template-description {
+  color: var(--con-ink-3);
+  font: 400 11.5px/1.4 var(--con-sans);
+}
+
+.window-suggestion-property,
+.window-suggestion-label {
+  display: block;
+}
+
+.suggestions-empty-state-compact {
+  grid-template-columns: 1fr;
+  grid-template-areas:
+    "title"
+    "hint";
+}
+
+/* Inline explanation copy is flattened into a readable technical note. */
+:is(
+  #regexExplanationModal,
+  #wholeWordExplanationModal,
+  #caseSensitiveExplanationModal,
+  #conditionHelperModal,
+  #methodHelpModal
+) .rule-modal-body {
+  padding: 10px 12px;
+  color: var(--con-ink-2);
+  font: 400 12.5px/1.5 var(--con-sans);
+}
+
+:is(
+  #regexExplanationModal,
+  #wholeWordExplanationModal,
+  #caseSensitiveExplanationModal,
+  #conditionHelperModal,
+  #methodHelpModal
+) .rule-modal-body :is(h3, h4) {
+  color: var(--con-ink-3) !important;
+  font: 600 10.5px/1.3 var(--con-mono) !important;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+:is(
+  #regexExplanationModal,
+  #wholeWordExplanationModal,
+  #caseSensitiveExplanationModal,
+  #conditionHelperModal,
+  #methodHelpModal
+) .rule-modal-body table {
+  border-collapse: collapse;
+  background: transparent;
+  font-family: var(--con-mono);
+}
+
+:is(
+  #regexExplanationModal,
+  #wholeWordExplanationModal,
+  #caseSensitiveExplanationModal,
+  #conditionHelperModal,
+  #methodHelpModal
+) .rule-modal-body :is(td, th) {
+  padding: 6px 7px !important;
+  border: 1px solid var(--con-line) !important;
+  background: transparent !important;
+  color: var(--con-ink-2);
+}
+
+/* ============================================================
+   METHOD / ICON / COLOUR TOOLS
+   ============================================================ */
+
+.http-method-badges-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(64px, 1fr));
+  gap: 1px;
+  overflow: hidden;
+  border: 1px solid var(--con-line);
+  border-radius: 2px;
+  background: var(--con-line);
+}
+
+.http-method-badge {
+  min-height: 30px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: var(--con-row-a);
+  box-shadow: none;
+}
+
+.http-method-badge:hover,
+.http-method-badge.checked,
+.http-method-badge:has(input:checked) {
+  transform: none;
+  border: 0;
+  background: color-mix(in srgb, var(--con-accent) 12%, var(--con-row-a));
+  box-shadow: inset 0 -2px 0 var(--con-accent);
+}
+
+.http-method-badge .method-badge-content {
+  color: var(--con-ink-2);
+  font: 600 10.5px/30px var(--con-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.icon-picker-body {
+  padding: 0;
+}
+
+.icon-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
+  gap: 1px;
+  padding: 1px;
+  background: var(--con-line);
+}
+
+.icon-option,
+.icon-option-special {
+  min-height: 72px;
+  margin: 0;
+  padding: 8px 5px 6px;
+  border: 0;
+  border-left: 3px solid transparent;
+  border-radius: 0;
+  background: var(--con-row-a);
+  box-shadow: none;
+}
+
+.icon-option:hover,
+.icon-option-special:hover,
+.icon-option.selected {
+  transform: none;
+  border-color: var(--con-accent);
+  background: #303030;
+  box-shadow: none;
+}
+
+.icon-option-label {
+  color: var(--con-ink-3);
+  font: 500 9.5px/1.25 var(--con-mono);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.icon-picker-footer .icon-picker-upload-btn,
+.icon-picker-footer .icon-picker-cancel-btn {
+  min-height: 24px;
+  padding: 2px 0;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--con-ink-3);
+  font: 600 11px/1 var(--con-mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.icon-picker-footer .icon-picker-upload-btn {
+  color: var(--con-accent-text);
+  border-bottom-color: var(--con-accent);
+}
+
+.canvas-color-picker,
+.selected-color-display,
+.rgb-controls {
+  margin: 0;
+  padding: 10px 12px;
+  border: 0;
+  border-bottom: 1px solid var(--con-line);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.color-picker-canvas,
+.hue-strip {
+  border: 1px solid var(--con-line-strong);
+  border-radius: 2px;
+  box-shadow: none;
+}
+
+.rgb-input {
+  min-height: 28px;
+  padding: 0 6px;
+  border: 1px solid var(--con-line);
+  border-radius: 2px;
+  background: var(--con-row-b);
+  color: var(--con-ink);
+  font: 400 12px/1 var(--con-mono);
+}
+
+/* ============================================================
+   SETTINGS SUB-CONTROLS AND PAGERS
+   ============================================================ */
+
+.language-picker-option {
+  position: relative;
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) 12px;
+  align-items: center;
+  min-height: 30px;
+  margin: 0;
+  padding: 0 9px 0 7px;
+  border: 0;
+  border-left: 2px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  color: var(--con-ink-2);
+  font: 400 12.5px/1.3 var(--con-mono);
+}
+
+.language-picker-option:hover,
+.language-picker-option.is-focused,
+.language-picker-option[aria-selected="true"] {
+  border-left-color: var(--con-accent);
+  background: #292929;
+  color: var(--con-ink);
+}
+
+.language-picker-option[aria-selected="true"] {
+  color: var(--con-accent-text);
+  font-weight: 600;
+}
+
+.color-field {
+  width: 34px;
+  height: 24px;
+  padding: 2px;
+  border: 1px solid var(--con-line-strong);
+  border-radius: 2px;
+  background: var(--con-row-b);
+  box-shadow: none;
+}
+
+.color-field::-webkit-color-swatch {
+  border: 0;
+  border-radius: 0;
+}
+
+.data-icon-btn {
+  min-height: 28px;
+  padding: 0 8px;
+  border: 1px solid var(--con-line);
+  border-left: 2px solid var(--con-accent);
+  border-radius: 2px;
+  background: var(--con-row-b);
+  box-shadow: none;
+  color: var(--con-ink-2);
+  font: 600 10.5px/1 var(--con-mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.data-icon-btn:hover {
+  transform: none;
+  border-color: var(--con-line-strong);
+  border-left-color: var(--con-accent);
+  background: #303030;
+  color: var(--con-ink);
+  box-shadow: none;
+}
+
+#historyTab .pagination,
+#rulesTab .pagination,
+.blacklist-pagination,
+.color-pagination-controls {
+  border-radius: 0;
+  border-right: 0;
+  border-left: 0;
+  background: var(--con-band);
+  box-shadow: none;
+}
+
+#historyTab .pagination .pagination-btn,
+#rulesTab .pagination .pagination-btn,
+.blacklist-pagination .pagination-btn,
+.color-pagination-controls .pagination-btn {
+  width: 24px;
+  min-width: 24px;
+  height: 24px;
+  min-height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--con-ink-3);
+}
+
+#historyTab .pagination .pagination-btn:hover:not(:disabled),
+#rulesTab .pagination .pagination-btn:hover:not(:disabled),
+.blacklist-pagination .pagination-btn:hover:not(:disabled),
+.color-pagination-controls .pagination-btn:hover:not(:disabled) {
+  transform: none;
+  background: var(--con-row-b);
+  color: var(--con-accent);
+  box-shadow: inset 0 -2px 0 var(--con-accent);
+}
+
+/* Keep the visual glyph compact while the interactive target reaches 24px. */
+.method-help-btn,
+.method-item .method-action-btn.delete,
+.method-item .dom-helper-btn,
+.method-item .window-helper-btn,
+.method-pagination-btn,
+.rule-modal-close {
+  min-width: 24px !important;
+  min-height: 24px !important;
+}
+
+.method-help-btn svg,
+.method-item .method-action-btn.delete svg,
+.method-item .dom-helper-btn svg,
+.method-item .window-helper-btn svg,
+.method-pagination-btn svg,
+.rule-modal-close svg {
+  width: 12px;
+  height: 12px;
+}
+
+@media (max-width: 430px) {
+  .dom-step {
+    grid-template-columns: 18px minmax(0, 1fr);
+    gap: 3px;
+    padding: 0 4px;
+  }
+
+  .dom-step-label {
+    font-size: 8.5px;
+    letter-spacing: 0.04em;
+  }
+
+  .console-choice-menu,
+  .condition-dropdown-menu,
+  .inline-condition-dropdown .condition-dropdown-menu {
+    max-width: calc(100vw - 16px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .console-choice-marker::before,
+  .console-choice-marker::after,
+  .condition-dropdown-trigger .dropdown-chevron {
+    transition: none;
+  }
+}
